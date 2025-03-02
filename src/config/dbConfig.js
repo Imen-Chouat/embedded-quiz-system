@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise' ;
 import dotenv from 'dotenv' ;
-import envConfig from './envConfig';
+import envConfig from './envConfig.js';
 dotenv.config();
 const dbConfig = {
     host: envConfig.DB_HOST ,
@@ -50,8 +50,8 @@ async function createStudentTable() {
 }
 async function createQuizTable() {
     try {
-        const [result] = pool.query(`
-                CREATE TABLE IF NOR EXIST quizzes (
+        const [result] = await pool.query(`
+                CREATE TABLE IF NOT EXISTS quizzes (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     teacher_id INT,
                     title VARCHAR(255) NOT NULL,
@@ -68,8 +68,8 @@ async function createQuizTable() {
 }
 async function createQuestionTable() {
     try {
-        const [result] = pool.query(`
-                CREATE TABLE IF NOR EXIST questions (
+        const [result] = await pool.query(`
+                CREATE TABLE IF NOT EXISTS questions (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     quiz_id INT,
                     question_text TEXT NOT NULL,
@@ -84,8 +84,8 @@ async function createQuestionTable() {
 }
 async function createAnswersTable() {
     try {
-        const [result] = pool.query(`
-                CREATE TABLE IF NOR EXIST answers (
+        const [result] = await pool.query(`
+                CREATE TABLE IF NOT EXISTS answers (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     question_id INT,
                     answer_text VARCHAR(255) NOT NULL,
@@ -145,8 +145,8 @@ async function createStudent_groups() {
 
 async function  createQuiz_student() {
     try {
-        const [result] = pool.query(`
-                CREATE TABLE IF NOR EXIST quiz_student (
+        const [result] = await pool.query(`
+                CREATE TABLE IF NOT EXISTS quiz_student (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     quiz_id INT,
                     student_id INT,
@@ -161,8 +161,8 @@ async function  createQuiz_student() {
 
 async function createQuiz_attempts() {
     try {
-        const [result] = pool.query(`
-                CREATE TABLE IF NOR EXIST quiz_attempts (
+        const [result] = await pool.query(`
+                CREATE TABLE IF NOT EXISTS quiz_attempts (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     student_id INT,
                     quiz_id INT,
@@ -182,8 +182,8 @@ async function createQuiz_attempts() {
 
 async function createStudent_responses() {
     try {
-        const [result] = pool.query(`
-                CREATE TABLE IF NOR EXIST student_responses (
+        const [result] = await pool.query(`
+                CREATE TABLE IF NOT EXISTS student_responses (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     student_id INT,
                     quiz_id INT,
