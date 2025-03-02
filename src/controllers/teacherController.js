@@ -6,13 +6,13 @@ import Teacher from '../modules/Teacher.js';
 const registerTeacher = async (req,res)=>{
     try {
         const {name , surname , email , password} = req.body ;
-        const emailExist = await Teacher.seachByemail(email);
+        const emailExist = await Teacher.searchByemail(email);
         if(emailExist){
            return res.status(400).send({"message" : "Email already exists ."}) ;
         }
-        const password_hash = bcryptjs.hash(password,8);
-        const newID = Teacher.create(name,surname,email,password_hash);
-        const teacher = Teacher.getById(newID);
+        const password_hash = await bcryptjs.hash(password,8);
+        const newID = await Teacher.create(name,surname,email,password_hash);
+        const teacher = await Teacher.getById(newID);
         return res.status(201).json(teacher);
     } catch (error) {
         return res.status(404).send({"message":"problem registering a teacher"});
@@ -22,9 +22,9 @@ const registerTeacher = async (req,res)=>{
 const loginTeacher = async (req,res)=>{
     try {
         const {email, password} = req.body ;
-        const teacher = await Teacher.seachByemail(email);
+        const teacher = await Teacher.searchByemail(email);
         if(teacher){
-            const isMatch = await bcryptjs.compare(password,teacher.password);
+            const isMatch = await bcryptjs.compare(password,teacher.password_hash);
             if(!isMatch){
                 return res.status(400).json({"message":"wrongpassword"});
             }
@@ -42,7 +42,7 @@ const loginTeacher = async (req,res)=>{
 const modifyName = async (req,res) =>{
     try {
         const {id , newName } = req.body ;
-        const teacher = await Teacher.getById(id);
+        let teacher = await Teacher.getById(id);
         if(!teacher){
             return res.status(404).json({"message":"Wrong id"});
         }

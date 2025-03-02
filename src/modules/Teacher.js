@@ -37,9 +37,9 @@ class Teacher {
             console.log(error);
         }
     }
-    static async seachByemail(email){
+    static async searchByemail(email){
         try{
-            const [result] = await pool.execute(`SELECT * FROM tables WHERE email = ?`,[email]);
+            const [result] = await pool.execute(`SELECT * FROM teachers WHERE email = ?`,[email]);
             if(result.length > 0){
                 return result[0];
             }
@@ -51,7 +51,7 @@ class Teacher {
     static async getById(id){
         try {
             const [teachers] = await pool.execute('SELECT * from teachers WHERE id = ?',[id]);
-            if(teacher.length > 0 ){
+            if(teachers.length > 0 ){
                 return teachers[0] ;
             }else {
                 return null ;
