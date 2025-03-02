@@ -1,6 +1,6 @@
 import express from 'express';
-import teacherRoutes from './routes/teacherRoutes';
-import appConfig from './config/appConfig';
+import teacherRoutes from './routes/teacherRoutes.js';
+import appConfig from './config/appConfig.js';
 
 //Imen : configuring the app 
 const PORT = process.env.PORT || 7000 ;
