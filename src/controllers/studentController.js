@@ -121,7 +121,7 @@ const modify_password = async (req,res) =>{
         return res.status(500).json({ message: "Server error", error: error.message });
     }
 }
-const modify_groupid = async (req,res) =>{
+const modify_group = async (req,res) =>{
         try{
         const { id , new_level , new_section , new_group} = req.body ;
         let student = await Student.getById(id);
@@ -161,6 +161,6 @@ export default {
     modify_LastName , 
     modify_FirstName ,
     modify_password ,
-    modify_groupid 
+    modify_group
 
 };
