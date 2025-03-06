@@ -4,7 +4,7 @@ import studentControllers from '../controllers/studentController.js';
 const router = express.Router();
 
 
-router.post('/Register',studentControllers.RegisterStudent);
+router.post('/register',studentControllers.registerStudent);
 router.post('/login',studentControllers.loginStudent);
 router.patch('/modify_LastName',studentControllers.modify_LastName );
 router.patch('/modify_FirstName',studentControllers.modify_FirstName );
