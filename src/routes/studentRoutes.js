@@ -1,14 +1,15 @@
 import express from 'express';
 import studentControllers from '../controllers/studentController.js';
-
+import authenticateStudent from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
 
-router.post('/register',studentControllers.registerStudent);
-router.post('/login',studentControllers.loginStudent);
-router.patch('/modify_LastName',studentControllers.modify_LastName );
-router.patch('/modify_FirstName',studentControllers.modify_FirstName );
-router.patch('/modify_password',studentControllers.modify_password );
-router.patch('/modify_group',studentControllers.modify_group );
+
+router.post('/register',studentControllers.registerStudent );
+router.post('/login',studentControllers.loginStudent );
+router.patch('/modify_LastName',authenticateStudent ,studentControllers.modify_LastName );
+router.patch('/modify_FirstName',authenticateStudent ,studentControllers.modify_FirstName );
+router.patch('/modify_password',authenticateStudent ,studentControllers.modify_password );
+router.patch('/modify_group',authenticateStudent ,studentControllers.modify_group );
 
 export default router;
