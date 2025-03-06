@@ -31,15 +31,16 @@ async function createTeachersTable() {
     }
 }
 
-async function createStudentTable() {
+async function createStudentsTable() {
     try {
         const [results] = await pool.query(`
             CREATE TABLE IF NOT EXISTS students (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 group_id INT,
-                name VARCHAR(100) NOT NULL,
+                Last_name VARCHAR(100) NOT NULL,
+                First_name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
+                password VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (group_id) REFERENCES student_groups(id) ON DELETE SET NULL
             );
@@ -48,14 +49,15 @@ async function createStudentTable() {
         console.error('Error creating table:', error);
     }
 }
-async function createQuizTable() {
+async function createQuizzesTable() {
     try {
         const [result] = await pool.query(`
                 CREATE TABLE IF NOT EXISTS quizzes (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     teacher_id INT,
+                    Module VARCHAR(255) NOT NULL,
                     title VARCHAR(255) NOT NULL,
-                    status ENUM('draft', 'published', 'archived') NOT NULL,
+                    status ENUM('draft', 'published') NOT NULL,
                     timed_by ENUM('quiz','question') NOT NULL,
                     duration_minutes INT,
                     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
@@ -66,7 +68,7 @@ async function createQuizTable() {
     }
 
 }
-async function createQuestionTable() {
+async function createQuestionsTable() {
     try {
         const [result] = await pool.query(`
                 CREATE TABLE IF NOT EXISTS questions (
@@ -74,6 +76,7 @@ async function createQuestionTable() {
                     quiz_id INT,
                     question_text TEXT NOT NULL,
                     duration_minutes INT,
+
                     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
                 );
             `);
@@ -98,12 +101,12 @@ async function createAnswersTable() {
     }
 }
 
-async function createPromoTable() {
+async function createlevelsTable() {
     try {
         const [results] = await pool.query(`
-            CREATE TABLE IF NOT EXISTS  promo (
+            CREATE TABLE IF NOT EXISTS  levels (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                name VARCHAR(50) NOT NULL
+                level_name VARCHAR(50) NOT NULL
             );
         `);
     } catch (error) {
@@ -111,14 +114,14 @@ async function createPromoTable() {
     }
 }
 
-async function createSectionTable() {
+async function createSectionsTable() {
     try {
         const [results] = await pool.query(`
             CREATE TABLE IF NOT EXISTS sections (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                class_id INT,
-                name VARCHAR(10),
-                FOREIGN KEY (class_id) REFERENCES promo(id) ON DELETE SET NULL
+                level_id INT,
+                section_name VARCHAR(10),
+                FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE SET NULL
             );
         `);
     } catch (error) {
@@ -127,13 +130,13 @@ async function createSectionTable() {
     
 }
 
-async function createStudent_groups() {
+async function createstudent_groupsTable() {
     try {
         const [results] = await pool.query(`
             CREATE TABLE IF NOT EXISTS student_groups (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 section_id INT,
-                name VARCHAR(10),
+                group_name VARCHAR(10),
                 FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL
             );
         `);
@@ -143,10 +146,10 @@ async function createStudent_groups() {
     
 }
 
-async function  createQuiz_student() {
+async function  createQuizParticipants() {
     try {
         const [result] = await pool.query(`
-                CREATE TABLE IF NOT EXISTS quiz_student (
+                CREATE TABLE IF NOT EXISTS QuizParticipants (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     quiz_id INT,
                     student_id INT,
@@ -162,13 +165,13 @@ async function  createQuiz_student() {
 async function createQuiz_attempts() {
     try {
         const [result] = await pool.query(`
-                CREATE TABLE IF NOT EXISTS quiz_attempts (
+                CREATE TABLE IF NOT EXISTS Quiz_attempts (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     student_id INT,
                     quiz_id INT,
                     start_time DATETIME NOT NULL,
                     end_time DATETIME,
-                    status ENUM('in_progress', 'completed', 'cancelled') NOT NULL,
+                    status ENUM('not_submitted', 'completed') NOT NULL,
                     score FLOAT,
                     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
                     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
@@ -188,12 +191,12 @@ async function createStudent_responses() {
                     student_id INT,
                     quiz_id INT,
                     question_id INT,
-                    choice_id INT,
+                    answer_id INT,
                     is_correct BOOLEAN,
                     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
                     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
                     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
-                    FOREIGN KEY (choice_id) REFERENCES answers(id) ON DELETE CASCADE
+                    FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE CASCADE
                 );
             `);
     } catch (error) {
@@ -202,15 +205,17 @@ async function createStudent_responses() {
 }
 
 createTeachersTable();
-createStudentTable();
-createQuizTable();
-createQuestionTable();
+createStudentsTable();
+createQuizzesTable();
+createQuestionsTable();
 createAnswersTable();
-createStudent_groups();
-createSectionTable();
-createPromoTable();
-createQuiz_student();
+createstudent_groupsTable();
+createSectionsTable();
+createlevelsTable();
+createQuizParticipants();
 createQuiz_attempts();
 createStudent_responses();
 
 export default pool ;
+
+
