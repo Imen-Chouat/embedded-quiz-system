@@ -1,3 +1,4 @@
+
 import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 import bcryptjs from 'bcryptjs';
@@ -16,19 +17,19 @@ class Student {
         }
     }
 
-    static async update_Password(id, password) {
+    static async update_Password(studentId , password) {
         try {
            const password_hash = await bcryptjs.hash(password, 8);
-            const [result] = await pool.execute(`UPDATE students SET password = ? WHERE id = ?`, [password_hash, id]);
+            const [result] = await pool.execute(`UPDATE students SET password = ? WHERE id = ?`, [password_hash, studentId ]);
             return result.affectedRows;
         } catch (error) {
             console.log(error);
         }
     }
 
-    static async update_LastName( id, last_name) {
+    static async update_LastName( studentId, last_name) {
         try {
-            const [result] = await pool.execute(`UPDATE students SET Last_name = ? WHERE id = ?`, [last_name, id]);
+            const [result] = await pool.execute(`UPDATE students SET Last_name = ? WHERE id = ?`, [last_name, studentId ]);
             return result.affectedRows;
         } catch (error) {
             console.log(error);
@@ -90,4 +91,6 @@ class Student {
 }
 
 export default Student;
+
+
 
