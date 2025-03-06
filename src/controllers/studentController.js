@@ -1,4 +1,5 @@
-import bcryptjs from 'bcryptjs';
+
+       import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import envConfig from '../config/envConfig.js';
 import Student from '../modules/Student.js';
@@ -55,8 +56,8 @@ const loginStudent = async (req,res)=>{
             const token = jwt.sign({id : student.id , email : student.email},envConfig.JWT_SECRET,{expiresIn : '24h'});
             return res.status(201).json({"message":"student loged in successfully !",token});
         }
-            else{
-            return res.status(400).json({"message":"Email not found"});
+        else{
+         return res.status(400).json({"message":"Email not found"});
         }
 
     } catch (error) {
@@ -66,15 +67,16 @@ const loginStudent = async (req,res)=>{
 
 const modify_LastName = async (req,res) =>{
     try {
-        const {id , newName } = req.body ;
-        let student = await Student.getById(id);
-        console.log(" Student found:", student);
+        const studentId = req.student.id;
+        const { newName } = req.body ;
+        let student = await Student.getById(studentId);
+        
         if(!student){
-            return res.status(404).json({"message":"Wrong id"});
+            return res.status(404).json({"message":"Wrong idand student not found "});
         }
-        const modified = await Student.update_LastName(id, newName);
+        const modified = await Student.update_LastName(studentId, newName);
         if(modified > 0) {
-            student = await Student.getById(id);
+            student = await Student.getById(studentId);
             return res.status(200).json({"message" : "The name modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the name !"});
@@ -86,14 +88,15 @@ const modify_LastName = async (req,res) =>{
 } 
 const modify_FirstName = async (req,res) =>{
     try {
-        const {id , newName } = req.body ;
-        let student = await Student.getById(id);
+        const studentId = req.student.id;
+        const { newName } = req.body ;
+        let student = await Student.getById( studentId );
         if(!student){
             return res.status(404).json({"message":"Wrong id"});
         }
-        const modified = await Student.update_FirstName(id, newName);
+        const modified = await Student.update_FirstName( studentId , newName);
         if(modified > 0) {
-            student = await Student.getById(id);
+            student = await Student.getById( studentId );
             return res.status(200).json({"message" : "The firstname modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the firstname !"});
@@ -105,14 +108,15 @@ const modify_FirstName = async (req,res) =>{
 } 
 const modify_password = async (req,res) =>{
     try {
-        const {id , new_password} = req.body ;
-        let student = await Student.getById(id);
+        const studentId = req.student.id;
+        const {  new_password } = req.body ;
+        let student = await Student.getById( studentId );
         if(!student){
             return res.status(404).json({"message":"Wrong id"});
         }
-        const modified = await Student.update_Password(id, new_password);
+        const modified = await Student.update_Password( studentId ,new_password);
         if(modified > 0) {
-            student = await Student.getById(id);
+            student = await Student.getById(studentId );
             return res.status(200).json({"message" : "The password modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the password !"});
@@ -123,8 +127,9 @@ const modify_password = async (req,res) =>{
 }
 const modify_group = async (req,res) =>{
         try{
-        const { id , new_level , new_section , new_group} = req.body ;
-        let student = await Student.getById(id);
+        const studentId = req.student.id;    
+        const {  new_level , new_section , new_group} = req.body ;
+        let student = await Student.getById( studentId );
         if (!student){
             return res.status(404).json({"message":"Wrong id"});
         }
@@ -143,9 +148,9 @@ const modify_group = async (req,res) =>{
             throw new Error("Groupe non trouvé !");
         }
         const group_id = group[0].id;
-        const modified = await Student.update_groupid(id, group_id);
+        const modified = await Student.update_groupid( studentId , group_id);
         if(modified > 0) {
-            student = await Student.getById(id);
+            student = await Student.getById(studentId );
             return res.status(200).json({"message" : "The group_id  modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the group_id  !"});
@@ -159,7 +164,9 @@ export default {
     registerStudent ,
     loginStudent ,
     modify_LastName , 
+    
     modify_FirstName ,
+
     modify_password ,
     modify_group
 
