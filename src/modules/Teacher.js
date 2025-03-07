@@ -7,8 +7,8 @@ class Teacher {
         try {
             const [row] = await pool.execute(`INSERT INTO teachers (name , surname , email , password_hash) VALUES (?,?,?,?)`,[name , surname , email ,password_hash]);
             return row.insertId ;// Imen: After inserting we get the id of the teacher
-        }catch(err) {
-            console.error(err);
+        }catch(error) {
+            throw new Error(`Error creating teacher by ID: ${error.message}`);
         }
     }
     static async updateName(id,name){
@@ -17,8 +17,8 @@ class Teacher {
             return result.affectedRows ;
             //Imen: this shows how many rows where affected by my query
             //Imen: We can do also result.changedRows 
-        }catch {
-            console.error(err);
+        }catch (error){
+            throw new Error(`Error fetching teacher by ID: ${error.message}`);
         }
     }
     static async updatePassword(id,password){
@@ -26,7 +26,7 @@ class Teacher {
             const [result] = await pool.execute(`UPDATE teachers SET password_hash = ? WHERE id = ?`,[password,id]);
             return result.affectedRows ;
         } catch (error) {
-            console.log(error);
+            throw new Error(`Error fetching teacher by ID: ${error.message}`);
         }
     }
     static async updateSurname(id,surname){
@@ -34,7 +34,7 @@ class Teacher {
             const [result] = await pool.execute(`UPDATE teachers SET surname = ? WHERE id = ?`,[surname,id]);
             return result.affectedRows ;
         } catch (error) {
-            console.log(error);
+            throw new Error(`Error fetching teacher by ID: ${error.message}`);
         }
     }
     static async searchByemail(email){
@@ -45,7 +45,7 @@ class Teacher {
             }
             return null ;
         }catch(error){
-            console.log(error);
+            throw new Error(`Error fetching teacher by Email: ${error.message}`);
         }
     }
     static async getById(id){
@@ -57,7 +57,8 @@ class Teacher {
                 return null ;
             }
         } catch (error) {
-            console.log(error);
+            throw new Error(`Error fetching teacher by ID: ${error.message}`);
+            return null;
         }
     }
 }
