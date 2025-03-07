@@ -33,7 +33,7 @@ async function mainMenu() {
             case '6': await getQuestionsByQuiz(); break;
             case '7': await checkQuestionExpiration(); break;
             case '0': console.log("👋 Fin du programme !"); rl.close(); return;
-            default: console.log("❌ Option invalide. Essayez encore.");
+     
         }
     }
 }
