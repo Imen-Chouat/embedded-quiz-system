@@ -1,6 +1,6 @@
 import express from 'express';
 import studentControllers from '../controllers/studentController.js';
-import authenticateStudent from '../middlewares/authMiddleware.js';
+import { authenticateStudent } from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
 
