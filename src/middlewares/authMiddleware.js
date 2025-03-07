@@ -24,4 +24,26 @@ const authenticateStudent = (req, res, next) => {
     }
 };
 
-export default authenticateStudent;
+const authTeacherMiddleware = async (req ,res , next )=>{
+    try{
+        const authHeaders = req.headers['authorization'];
+        if (!authHeaders || !authHeaders.startsWith("Bearer ")) {
+            return res.status(401).json({ "message": "No token provided or format incorrect" });
+        }
+        const token = authHeaders.split(" ")[1];
+        if(!token){
+            return res.status(401).json({"message":"no token were attached"});
+        }
+        const decoded = jwt.verify(token,envConfig.JWT_SECRET);
+        req.teacher = decoded ;
+        console.log("the teacher json :",req.teacher);
+        next();
+    } catch (error) {
+        return res.status(403).json({"message":"token not autherized"}); 
+    }
+} 
+
+export default { 
+    authenticateStudent ,
+    authTeacherMiddleware
+};
