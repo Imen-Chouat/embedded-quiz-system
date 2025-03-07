@@ -12,4 +12,5 @@ appConfig(app);
 //Imen : Routes 
 app.use('/api/teachers',teacherRoutes);
 app.use('/api/students',studentRoutes));
+app.use('./api/questions',questionRoutes);
 export default app ;
