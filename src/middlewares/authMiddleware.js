@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import envConfig from '../config/envConfig.js';
 
-const authenticateStudent = (req, res, next) => {
+export const authenticateStudent = (req, res, next) => {
     const authHeader = req.header("Authorization");
     console.log("Authorization Header:", authHeader);
     if (!authHeader) {
@@ -24,7 +24,7 @@ const authenticateStudent = (req, res, next) => {
     }
 };
 
-const authTeacherMiddleware = async (req ,res , next )=>{
+export const authTeacherMiddleware = async (req ,res , next )=>{
     try{
         const authHeaders = req.headers['authorization'];
         if (!authHeaders || !authHeaders.startsWith("Bearer ")) {
@@ -41,9 +41,5 @@ const authTeacherMiddleware = async (req ,res , next )=>{
     } catch (error) {
         return res.status(403).json({"message":"token not autherized"}); 
     }
-} 
+} ;
 
-export default { 
-    authenticateStudent ,
-    authTeacherMiddleware
-};
