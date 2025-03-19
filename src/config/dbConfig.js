@@ -38,10 +38,10 @@ async function createStudentsTable() {
             CREATE TABLE IF NOT EXISTS students (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 group_id INT,
-                Last_name VARCHAR(100) NOT NULL,
-                First_name VARCHAR(100) NOT NULL,
+                last_name VARCHAR(100) NOT NULL,
+                first_name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 refresh_token VARCHAR(255) DEFAULT NULL,
                 FOREIGN KEY (group_id) REFERENCES student_groups(id) ON DELETE SET NULL
@@ -57,12 +57,13 @@ async function createQuizzesTable() {
                 CREATE TABLE IF NOT EXISTS quizzes (
                     id INT PRIMARY KEY AUTO_INCREMENT,
                     teacher_id INT,
-                    Module VARCHAR(255) NOT NULL,
+                    module_id INT,
                     title VARCHAR(255) NOT NULL,
                     status ENUM('draft', 'published') NOT NULL,
                     timed_by ENUM('quiz','question') NOT NULL,
                     duration_minutes INT,
-                    FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
+                    FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
+                    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE 
                 );
             `);
     } catch (error) {
@@ -78,7 +79,6 @@ async function createQuestionsTable() {
                     quiz_id INT,
                     question_text TEXT NOT NULL,
                     duration_minutes INT,
-
                     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
                 );
             `);
@@ -103,7 +103,7 @@ async function createAnswersTable() {
     }
 }
 
-async function createlevelsTable() {
+async function createLevelsTable() {
     try {
         const [results] = await pool.query(`
             CREATE TABLE IF NOT EXISTS  levels (
@@ -132,7 +132,7 @@ async function createSectionsTable() {
     
 }
 
-async function createstudent_groupsTable() {
+async function createStudentGroupsTable() {
     try {
         const [results] = await pool.query(`
             CREATE TABLE IF NOT EXISTS student_groups (
@@ -164,7 +164,7 @@ async function  createQuizParticipants() {
     }
 }
 
-async function createQuiz_attempts() {
+async function createQuizAttempts() {
     try {
         const [result] = await pool.query(`
                 CREATE TABLE IF NOT EXISTS Quiz_attempts (
@@ -185,7 +185,7 @@ async function createQuiz_attempts() {
     }
 }
 
-async function createStudent_responses() {
+async function createStudentResponses() {
     try {
         const [result] = await pool.query(`
                 CREATE TABLE IF NOT EXISTS student_responses (
@@ -205,19 +205,64 @@ async function createStudent_responses() {
         console.error(error);
     }
 }
-
-createTeachersTable();
-createStudentsTable();
-createQuizzesTable();
-createQuestionsTable();
-createAnswersTable();
-createstudent_groupsTable();
-createSectionsTable();
-createlevelsTable();
-createQuizParticipants();
-createQuiz_attempts();
-createStudent_responses();
+async function createModulesTable() {
+    try {
+        const [result] = await pool.execute(`
+                CREATE TABLE IF NOT EXISTS modules (
+                    id INT PRIMARY KEY AUTO_INCREMENT ,
+                    moduleName VARCHAR(10)
+                );
+            `);
+    } catch (error) {
+        console.error(error);
+    }
+}
+async function createTeachModule() {
+    try {
+        const [result] = await pool.execute(`
+                CREATE TABLE IF NOT EXISTS teach_module (
+                    teacher_id INT,
+                    module_id INT,
+                    PRIMARY KEY (teacher_id , module_id),
+                    FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
+                    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
+                )
+            `);
+    } catch (error) {
+        console.error(error);
+    }
+}
+async function createLevelModule() {
+    try {
+        const [result] = await pool.execute(`
+                CREATE TABLE IF NOT EXISTS level_module(
+                    level_id INT,
+                    module_id INT,
+                    PRIMARY KEY (level_id,module_id),
+                    FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE CASCADE,
+                    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
+                )
+            `);
+    } catch (error) {
+        console.error(error);
+    }
+}
+async function createTables() {
+    await createTeachersTable();
+    await createStudentsTable();
+    await createQuizzesTable();
+    await createQuestionsTable();
+    await createAnswersTable();
+    await createStudentGroupsTable();
+    await createSectionsTable();
+    await createLevelsTable();
+    await createQuizParticipants();
+    await createQuizAttempts();
+    await createStudentResponses();
+    await createModulesTable();
+    await createTeachModule();
+    await createLevelModule();
+}
+createTables();
 
 export default pool ;
-
-
