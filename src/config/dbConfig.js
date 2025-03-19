@@ -22,7 +22,8 @@ async function createTeachersTable() {
                 surname VARCHAR(20) NOT NULL ,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                refresh_token VARCHAR(255) DEFAULT NULL
             );
         `);
        // console.log('Teachers table created successfully:', results);
@@ -42,6 +43,7 @@ async function createStudentsTable() {
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                refresh_token VARCHAR(255) DEFAULT NULL,
                 FOREIGN KEY (group_id) REFERENCES student_groups(id) ON DELETE SET NULL
             );
         `);
