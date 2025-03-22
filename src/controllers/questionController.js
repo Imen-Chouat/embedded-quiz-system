@@ -1,20 +1,19 @@
 import Question from '../modules/Question.js';
-import bcryptjs from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import envConfig from '../config/envConfig.js';
 
-// syrine: Ajouter une question
+// Ajouter une question
 export const createQuestion = async (req, res) => {
     try {
-        const { quiz_id, question_text, duration_seconds } = req.body;
-        const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_seconds });
+        const { quiz_id, question_text, duration_seconds, grade } = req.body;
+        if (!quiz_id || !question_text) return res.status(400).json({ error: "Missing required fields" });
+
+        const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_seconds, grade });
         res.status(201).json(newQuestion);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-// syrine: Récupérer une question par ID
+// Récupérer une question par ID
 export const getQuestionById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -26,18 +25,7 @@ export const getQuestionById = async (req, res) => {
     }
 };
 
-// syrine: Vérifier si une question est expirée
-export const checkQuestionExpiration = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const result = await Question.isQuestionExpired(Number(id));
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// syrine: Mettre à jour le texte d'une question
+// Mettre à jour le texte d'une question
 export const updateQuestionText = async (req, res) => {
     try {
         const { id } = req.params;
@@ -50,7 +38,7 @@ export const updateQuestionText = async (req, res) => {
     }
 };
 
-// syrine: Mettre à jour la durée d'une question
+// Mettre à jour la durée d'une question
 export const updateQuestionDuration = async (req, res) => {
     try {
         const { id } = req.params;
@@ -63,7 +51,20 @@ export const updateQuestionDuration = async (req, res) => {
     }
 };
 
-// syrine: Supprimer une question par ID
+// Mettre à jour la note d'une question
+export const updateQuestionGrade = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { grade } = req.body;
+        const updatedQuestion = await Question.updateQuestionGrade(id, { grade });
+        if (updatedQuestion.error) return res.status(404).json({ error: updatedQuestion.error });
+        res.json(updatedQuestion);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Supprimer une question
 export const deleteQuestion = async (req, res) => {
     try {
         const { id } = req.params;
@@ -75,18 +76,7 @@ export const deleteQuestion = async (req, res) => {
     }
 };
 
-// syrine: Rechercher des questions par texte
-export const searchQuestions = async (req, res) => {
-    try {
-        const { text } = req.query;
-        const questions = await Question.searchQuestions(text);
-        res.json(questions);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// syrine: Récupérer toutes les questions d'un quiz
+// Récupérer toutes les questions d'un quiz
 export const getQuizQuestions = async (req, res) => {
     try {
         const { quiz_id } = req.params;
@@ -101,10 +91,10 @@ export default {
     createQuestion,
     updateQuestionText,
     updateQuestionDuration,
+    updateQuestionGrade,
     deleteQuestion,
     getQuizQuestions,
-    searchQuestions,
-    getQuestionById,
-    checkQuestionExpiration
+    getQuestionById
 };
+
 
