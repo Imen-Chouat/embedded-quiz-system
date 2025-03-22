@@ -51,23 +51,7 @@ async function createStudentsTable() {
         console.error('Error creating table:', error);
     }
 }
-async function createResultTable() {
-    try {
-        const [results] = await pool.query(`
-        CREATE TABLE results (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    quiz_id INT NOT NULL,
-    student_id INT NOT NULL,
-    score FLOAT NOT NULL,
-    submission_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
-   );
-        `);
-    } catch (error) {
-        console.error('Error creating table:', error);
-    }
-}
+
 async function createQuizzesTable() {
     try {
         const [result] = await pool.query(`
