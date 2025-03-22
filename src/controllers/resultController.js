@@ -19,9 +19,20 @@ export const getAverageQuizGrade = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+xport const getQuizSuccessRate = async (req, res) => {
+    try {
+        const { quiz_id } = req.params;
+        const successRate = await Result.getQuizSuccessRate(quiz_id);
+        res.json({ quiz_id, success_rate: `${successRate}%` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 export default {
     getQuizAttendance,
-    getAverageQuizGrade
+    getAverageQuizGrade,
+    getQuizSuccessRate
 };
   
