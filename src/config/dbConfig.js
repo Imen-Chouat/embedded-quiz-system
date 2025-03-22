@@ -79,6 +79,7 @@ async function createQuestionsTable() {
                     quiz_id INT,
                     question_text TEXT NOT NULL,
                     duration_minutes INT,
+                    grade INT NOT NULL DEFAULT 1,
                     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
                 );
             `);
