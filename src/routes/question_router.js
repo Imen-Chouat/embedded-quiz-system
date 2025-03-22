@@ -9,7 +9,6 @@ router.patch('/updateDuration/:id', questionControllers.updateQuestionDuration);
 router.patch('/updateGrade/:id', questionControllers.updateQuestionGrade);
 router.delete('/delete/:id', questionControllers.deleteQuestion);
 router.get('/quiz/:quiz_id', questionControllers.getQuizQuestions);
-router.get('/search', questionControllers.searchQuestions);
 router.get('/:id', questionControllers.getQuestionById);
 
 export default router;
