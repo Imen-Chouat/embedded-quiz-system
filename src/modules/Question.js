@@ -3,11 +3,11 @@ import pool from '../config/dbConfig.js';
 
 class Question {
     // syrine: Cette méthode permet d'ajouter une question à un quiz donné.
-    static async createQuestion({ quiz_id, question_text, duration_seconds }) {
+    static async createQuestion({ quiz_id, question_text, duration_seconds, grade }) {
         try {
             const [result] = await pool.execute(
-                'INSERT INTO questions (quiz_id, question_text, duration_seconds) VALUES (?, ?, ?)',
-                [quiz_id, question_text, duration_seconds || null]
+                'INSERT INTO questions (quiz_id, question_text, duration_seconds, grade) VALUES (?, ?, ?, ?)',
+                [quiz_id, question_text, duration_seconds || null, grade || 1]
             );
             return { id: result.insertId, message: "Question added successfully" };
         } catch (error) {
@@ -57,6 +57,20 @@ class Question {
         }
     }
 
+    // syrine: Cette méthode met à jour la note d'une question.
+    static async updateQuestionGrade(id, { grade }) {
+        try {
+            const [result] = await pool.execute(
+                'UPDATE questions SET grade = ? WHERE id = ?',
+                [grade, id]
+            );
+            if (result.affectedRows === 0) return { error: "Question not found" };
+            return { message: "Question grade updated successfully" };
+        } catch (error) {
+            throw new Error(`Error while updating the question grade: ${error.message}`);
+        }
+    }
+
     // syrine: Cette méthode supprime une question de la base de données.
     static async deleteQuestion(id) {
         try {
@@ -84,43 +98,8 @@ class Question {
         }
     }
 
-    // syrine: Cette méthode permet de rechercher des questions en fonction d'un texte donné.
-    static async searchQuestions(text) {
-        try {
-            const [questions] = await pool.execute(
-                'SELECT * FROM questions WHERE question_text LIKE ?',
-                [`%${text}%`]
-            );
-            return questions;
-        } catch (error) {
-            throw new Error(`Error while searching for questions: ${error.message}`);
-        }
-    }
-    static async isQuestionExpired(id) {
-        try {
-            const [rows] = await pool.execute(
-                'SELECT duration_seconds FROM questions WHERE id = ?',
-                [id]
-            );
-            if (rows.length === 0) return { error: "Question not found" };
-    
-            const { duration_seconds } = rows[0];
-    
-            // Capture l'heure actuelle (moment de l'exécution)
-            const startTime = new Date(); 
-    
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve({ expired: true, message: "Time is up!" });
-                }, duration_seconds * 1000); // Convertit en millisecondes
-            });
-    
-        } catch (error) {
-            throw new Error(`Error checking question expiration: ${error.message}`);
-        }
-    }
-    
-    
+   
 }
 
 export default Question;
+
