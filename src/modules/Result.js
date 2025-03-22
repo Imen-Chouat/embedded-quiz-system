@@ -1,17 +1,35 @@
-import mysql from 'mysql2';
-import pool from '../config/dbConfig.js';
+import pool from '../config/database.js';
 
-static async getQuizAttendance(quiz_id) {
+
+export const getQuizAttendance = async (req, res) => {
     try {
-        const [rows] = await pool.execute(
-            `SELECT COUNT(DISTINCT user_id) AS attendance_count 
-             FROM answers 
-             WHERE question_id IN (SELECT id FROM questions WHERE quiz_id = ?)`,
+        const { quiz_id } = req.params;
+        const [rows] = await pool.query(
+            `SELECT COUNT(*) AS attendance FROM Quiz_attempts WHERE quiz_id = ?`,
             [quiz_id]
         );
-        return { quiz_id, attendance_count: rows[0].attendance_count };
+        res.json({ quiz_id, attendance: rows[0].attendance });
     } catch (error) {
-        throw new Error(`Error while retrieving quiz attendance: ${error.message}`);
+        res.status(500).json({ error: error.message });
     }
-}
-export default Result;
+};
+
+
+export const getAverageQuizGrade = async (req, res) => {
+    try {
+        const { quiz_id } = req.params;
+        const [rows] = await pool.query(
+            `SELECT AVG(score) AS average_grade FROM Quiz_attempts WHERE quiz_id = ? AND status = 'completed'`,
+            [quiz_id]
+        );
+        res.json({ quiz_id, average_grade: rows[0].average_grade || 0 });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export default {
+    getQuizAttendance,
+    getAverageQuizGrade
+};
+
