@@ -27,9 +27,37 @@ export const getAverageQuizGrade = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+static async getQuizSuccessRate(quiz_id) {
+    try {
+        const [totalRows] = await pool.query(
+            `SELECT COUNT(*) AS total FROM Quiz_attempts WHERE quiz_id = ? AND status = 'completed'`,
+            [quiz_id]
+        );
+
+        const [successRows] = await pool.query(
+            `SELECT COUNT(*) AS success FROM Quiz_attempts WHERE quiz_id = ? AND status = 'completed' AND score >= 10`,
+            [quiz_id]
+        );
+
+        const total = totalRows[0].total;
+        const success = successRows[0].success;
+
+        if (total === 0) {
+            return 0; // Aucun participant, donc 0% de réussite
+        }
+
+        const successRate = (success / total) * 100;
+        return successRate.toFixed(2); // Retourne un pourcentage avec 2 décimales
+    } catch (error) {
+        throw new Error('Erreur lors du calcul du pourcentage de réussite.');
+    }
+}
+
+
 
 export default {
     getQuizAttendance,
-    getAverageQuizGrade
+    getAverageQuizGrade,
+    getQuizSuccessRate
 };
 
