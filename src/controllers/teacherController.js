@@ -3,7 +3,9 @@ import bcryptjs from 'bcryptjs';
 //import envConfig from '../config/envConfig.js';
 import Teacher from '../modules/Teacher.js';
 import Organization from '../modules/Organization.js';
-import authController from './authController.js'
+import authController from './authController.js';
+import fs from 'fs';
+import csv from 'csv-parser';
 
 const registerTeacher = async (req,res)=>{
     try {
@@ -56,7 +58,6 @@ const loginTeacher = async (req,res)=>{
 
 const modifyName = async (req,res) =>{
     try {
-        console.log(req.teacher);
         const name= req.body.name ;
         const id = req.teacher.id ;
         let teacher = await Teacher.getById(id);
@@ -141,16 +142,17 @@ const modifyPassword = async (req,res) => {
 const addTeacherModule = async (req,res)=> {
     try {
         const {id,moduleName,levelName} = req.body ;
-        const module_id = await Organization.getModuleID(moduleName);
+        let module_id = await Organization.getModuleID(moduleName);
         if(module_id == -1){
-            return res.status(404).json({message:"wrong module Name."});
+            await Organization.createModule(moduleName);
         }
+        module_id = await Organization.getModuleID(moduleName)
         const level_id = await Organization.getLevelID(levelName);
         if (level_id == -1){
             return res.status(404).json({message:"wrong level Name."});
         }
         await Organization.addLevelModule(level_id,module_id);
-        await Organization.addTeacherModule(id,module_id);
+        await Teacher.addTeacherModule(id,module_id);
         return res.status(201).json({message: "Added a module successfully !",id});
     } catch (error) {
         return res.status(500).json({message:"error adding a new module to the teacher "});
@@ -165,7 +167,7 @@ const deleteTeacherModule = async (req,res) => {
             return res.status(404).json({ message: "Module not found!" });
         }
         await Teacher.deleteTeacherModule(id,module_id);
-        return res.status(200).json({ message: "Module successfully removed from the teacher's list!" });
+        return res.status(200).json({ message: "Module successfully removed from the teacher's list!" ,id});
     } catch (error) {
         return res.status(501).json({message:"error deleting the module from the teachers list !"});
     }
@@ -199,20 +201,45 @@ const updateModuleName = async (req,res) => {
         await Organization.updateModuleName(module_id,newName);        
         return res.status(200).json({message:"the module name has been changed",id});
     } catch (error) {
-        return res.status(500).json({message:"Error in updating the module's level ."});
+        return res.status(500).json({message:"Error in updating the module's name ."});
     }
 }
+
+const uploadStudentFile = async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const filePath = req.file.path;
+    const records = [];
+
+    // Read and parse CSV file
+    fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (row) => {
+            records.push(row);
+        })
+        .on('end', async () => {
+            try {
+                await Organization.processStudentData(records);
+                fs.unlinkSync(filePath); // Delete file after processing
+                res.json({ message: 'File processed successfully' });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+};
 
 const deleteAccount = async (req,res) => {
     try {
         const {id} = req.body ;
         const teacher = await Teacher.getById(id);
         if(!teacher){
-            return res.status(404).json({message:"no teacher with this id."});
+            return res.status(404).json({message:"no user with this id!",id});
         }
         await Teacher.delete(id);
+        res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: "Strict" });
+        return res.status(200).json({message:"Teacher is deleted successfully"});
     } catch (error) {
-        
+        return res.status(500).json({message:"Error in deleting the account ."});
     }
 }
 
@@ -226,5 +253,6 @@ export default {
     deleteTeacherModule,
     updateModuleLevel,
     updateModuleName,
+    uploadStudentFile,
     deleteAccount
 };
