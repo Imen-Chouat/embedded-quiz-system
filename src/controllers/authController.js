@@ -2,12 +2,12 @@ import jwt from 'jsonwebtoken';
 import envConfig from '../config/envConfig.js';
 import Teacher from '../modules/Teacher.js';
 
-export const generateTokensTeacher= (teacher)=>{
+const generateTokensTeacher= (teacher)=>{
     const accessToken = jwt.sign({id:teacher.id , email:teacher.email},envConfig.JWT_SECRET,{expiresIn : '15m'});
-    const refreshToken = jwt.sign({id:teacher.id},envConfig.REFRESH_TOKEN_SECRET,{expiresIn:'90d'});
+    const refreshToken = jwt.sign({id:teacher.id,email:teacher.email},envConfig.REFRESH_TOKEN_SECRET,{expiresIn:'90d'});
     return {accessToken , refreshToken} ;
 }
-export const refreshAccessToken = (req,res)=>{
+const refreshAccessToken = (req,res)=>{
     try {
         const {refreshToken} = req.cookies;
         if(!refreshToken){
@@ -25,14 +25,14 @@ export const refreshAccessToken = (req,res)=>{
         res.status(500).json({ message: "Internal server error", error });
     }
 }
-export const logoutTeacher = async (req, res) => {
+const logoutTeacher = async (req, res) => {
     try {
         const {refreshToken} = req.cookies ;
         if(!refreshToken){
-            res.status(401).json({ message: "Unauthorized" });
+            return res.status(401).json({ message: "Unauthorized" });
         }
         const {id} = req.body;
-        await Teacher.updateRefreshToken(id,refreshToken);
+        await Teacher.updateRefreshToken(id,null);
         res.clearCookie("refreshToken",{httpOnly: true, secure: true, sameSite: "Strict"});
         return res.status(200).json({ message: "Logged out successfully!" });
     } catch (error) {
