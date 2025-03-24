@@ -1,15 +1,15 @@
-
 import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 import bcryptjs from 'bcryptjs';
 
 class Student {
-    static async create(first_name, last_name, email, password, group_id = null) {
+    static async create(first_name, last_name, email, password_hash, group_id = null) {
         try {
             const [row] = await pool.execute(
-                `INSERT INTO students (first_name, last_name, email, password, group_id) VALUES (?, ?, ?, ?, ?)`,
-                [first_name, last_name, email, password, group_id]
+                `INSERT INTO students (first_name, last_name, email, password_hash, group_id) VALUES (?, ?, ?, ?, ?)`,
+                [first_name, last_name, email, password_hash, group_id]
             );
+            console.log("Insert result:", row);
             return row.insertId;
         } catch (error) {
             console.error(`Error creating student: ${error.message}`);
@@ -91,6 +91,7 @@ class Student {
 }
 
 export default Student;
+
 
 
 
