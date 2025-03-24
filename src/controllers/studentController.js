@@ -1,5 +1,4 @@
-
-       import bcryptjs from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import envConfig from '../config/envConfig.js';
 import Student from '../modules/Student.js';
@@ -20,13 +19,13 @@ const registerStudent = async (req, res) => {
         return res.status(404).send({ "message": "Level not found." });
       }
       const level_id = level[0].id;
-      console.log("Finding section_id for section_name:", section_name); // Debugging
+      console.log("Finding section_id for section_name:", section_name); 
       const [section] = await pool.execute("SELECT id FROM sections WHERE section_name = ? AND level_id = ?", [section_name, level_id]);
       if (section.length === 0) {
         return res.status(404).send({ "message": "Section not found." });
       }
       const section_id = section[0].id;
-      console.log("Finding group_id for group_name:", group_name); // Debugging
+      console.log("Finding group_id for group_name:", group_name); 
       const [group] = await pool.execute("SELECT id FROM student_groups WHERE group_name = ? AND section_id = ?", [group_name, section_id]);
       if (group.length === 0) {
         return res.status(404).send({ "message": "Group not found." });
@@ -49,7 +48,7 @@ const loginStudent = async (req,res)=>{
         const {email, password} = req.body ;
         const student = await Student.searchByEmail(email);
         if(student){
-            const isMatch = await bcryptjs.compare(password,student.password);
+            const isMatch = await bcryptjs.compare(password,student.password_hash);
             if(!isMatch){
                 return res.status(400).json({"message":"wrong password"});
             }
@@ -72,7 +71,7 @@ const modify_LastName = async (req,res) =>{
         let student = await Student.getById(studentId);
         
         if(!student){
-            return res.status(404).json({"message":"Wrong idand student not found "});
+            return res.status(404).json({"message":"Wrong id and student not found "});
         }
         const modified = await Student.update_LastName(studentId, newName);
         if(modified > 0) {
@@ -171,3 +170,4 @@ export default {
     modify_group
 
 };
+
