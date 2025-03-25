@@ -303,29 +303,6 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             [score, studentId, quizId]
         );
     }
-    /*
-    static async parseGeneratedQuestions(text) {
-        const questions = [];
-        const regex = /(\d+)\.\sQuestion:\s(.+?)\nOptions:\s\[A\)\s(.+?),\sB\)\s(.+?),\sC\)\s(.+?),\sD\)\s(.+?)\]\nCorrect Answer:\s([A-D])/g;
-        
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            const question = match[2];
-            const options = [match[3], match[4], match[5], match[6]];
-            const correct = ['A', 'B', 'C', 'D'].indexOf(match[7]);
     
-            if (question && options.length === 4 && correct !== -1) {
-                questions.push({ question, options, correct });
-            } else {
-                console.warn("Question invalide ignorée :", match[0]);
-            }
-        }
-    
-        return questions;
-    }
-    
-    
-
-*/
 }
 export default Quiz ;
