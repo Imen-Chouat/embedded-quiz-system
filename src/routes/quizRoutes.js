@@ -1,6 +1,22 @@
 import express from 'express';
 import quizController from '../controllers/quizController.js';
 import authenticateStudent, { authTeacherMiddleware } from '../middlewares/authMiddleware.js';
+import multer from 'multer';
+import fs from 'fs';
+
+
+
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); 
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const upload = multer({ storage }); 
 
 
 const router = express.Router();
@@ -20,6 +36,11 @@ router.post("/start",authenticateStudent , quizController.startQuiz);
 router.post("/submit", authenticateStudent, quizController.submitQuizManually);
 router.post("/auto-submit", authenticateStudent, quizController.autoSubmitQuiz);
 router.post("/start-quiz", authTeacherMiddleware, quizController.startQuizTeach);
-
+router.post("/importQuiz",authTeacherMiddleware , upload.single('file'), quizController.importQuiz);
+router.get("/randomize/:quizId", quizController.randomazation);
+router.post("/createQuizByAI",authTeacherMiddleware , upload.single('file'), quizController.createQuizByAI);
 
 export default router;
+
+
+
