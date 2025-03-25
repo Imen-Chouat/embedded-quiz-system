@@ -1,10 +1,18 @@
-import jwt from 'jsonwebtoken';
-import envConfig from '../config/envConfig.js';
-import Quiz from '../modules/Quiz.js';
-import pool from '../config/dbConfig.js';
-/* import fs from 'fs';
-import csv from 'csv-parser';
-import { openai } from '../config/openaiConfig.js'; */
+import jwt from "jsonwebtoken";
+import envConfig from "../config/envConfig.js";
+import Quiz from "../modules/Quiz.js";
+import pool from "../config/dbConfig.js";
+import fs from "fs";
+import csv from "csv-parser";
+import multer from "multer";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
+import OpenAI from "openai";
+
+
+const openai = new OpenAI({ apiKey: "YOUR_OPENAI_API_KEY" });
+
+
 
 const createQuiz = async (req, res) => {
     try {
@@ -218,7 +226,7 @@ const update_timedby = async (req, res) => {
         return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
     }
 }; 
-/*
+
 const randomazation = async (req, res) => {
     try {
         const { quizId } = req.params;
@@ -235,7 +243,7 @@ const randomazation = async (req, res) => {
         console.error("Error fetching quiz questions:", error);
         return res.status(500).json({ message: "Failed to fetch quiz questions. Please try again later." });
     }
-};*/
+};
 // submission 
 // ki student ydir start quiz manuellement
 const startQuiz= async (req, res) => {
@@ -251,7 +259,7 @@ const startQuiz= async (req, res) => {
 }
 
 // Submit a quiz manually
-
+// hna ntesti w mbe3d nchof itha njib id mn la req.param wla req.body
 const submitQuizManually = async (req, res) => {
     try {
         const studentId = req.student.id; 
@@ -326,7 +334,7 @@ const startQuizTeach = async (req, res) => {
             else if (levelName && sectionNames && groupNames && studentEmails.length == 0) {
                 const [students] = await pool.query(
                     `SELECT s.id FROM students s 
-                    
+
                      JOIN student_groups g ON s.group_id = g.id 
                      JOIN sections sec ON g.section_id = sec.id
                      JOIN levels l ON sec.level_id = l.id
@@ -364,19 +372,35 @@ const startQuizTeach = async (req, res) => {
     
     
 
-/*
+
 
 
 // import quiz
 // CSV format question , correct(le numéro de la reponse correct ) , options kol wahda fi ligne 
 const importQuiz = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Aucun fichier téléversé.' });
+    if (!req.teacher || !req.teacher.id) {
+        return res.status(403).json({ message: "Accès interdit." });
     }
 
+    const teacherId = req.teacher.id;
     const { quiz_id } = req.body;
-    if (!quiz_id) {
-        return res.status(400).json({ error: 'Le quiz_id est requis.' });
+
+    if (!quiz_id || isNaN(quiz_id)) {
+        return res.status(400).json({ error: "Le quiz_id est requis et doit être un nombre valide." });
+    }
+
+    if (!req.file) {
+        return res.status(400).json({ error: "Aucun fichier téléversé." });
+    }
+
+    
+    const [quizRows] = await pool.query(
+        "SELECT id FROM quizzes WHERE id = ? AND teacher_id = ?",
+        [quiz_id, teacherId]
+    );
+
+    if (quizRows.length === 0) {
+        return res.status(403).json({ error: "Vous n'êtes pas autorisé à importer un quiz qui ne vous appartient pas." });
     }
 
     const questions = [];
@@ -441,86 +465,88 @@ const importQuiz = async (req, res) => {
 };
 
 
-const createQuizWithAI = async (req, res) => {
-    const { teacher_id, module_id, title, level, num_questions } = req.body;
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); 
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
 
-    if (!teacher_id || !module_id || !title || !level || !num_questions) {
-        return res.status(400).json({ error: 'Tous les champs sont obligatoires.' });
+
+
+const extractTextFromFile = async (filePath, fileType) => {
+    if (fileType === "application/pdf") {
+        const data = await pdfParse(fs.readFileSync(filePath));
+        return data.text;
+    } else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        const data = await mammoth.extractRawText({ path: filePath });
+        return data.value;
+    } else if (fileType === "text/plain") {
+        return fs.readFileSync(filePath, "utf-8");
+    }
+    throw new Error("Unsupported file type.");
+};
+const upload = multer({ storage });
+
+const createQuizByAI = async (req, res) => {
+    if (!req.teacher || !req.teacher.id) {
+        return res.status(403).json({ message: "Accès interdit." });
     }
 
-    if (isNaN(num_questions) || num_questions < 1 || num_questions > 50) {
-        return res.status(400).json({ error: 'Le nombre de questions doit être un nombre entre 1 et 50.' });
+    const teacherId = req.teacher.id;
+    const { quiz_id } = req.body;
+
+    if (!quiz_id || isNaN(quiz_id)) {
+        return res.status(400).json({ error: "Le quiz_id est requis et doit être un nombre valide." });
     }
+
+    if (!req.file) {
+        return res.status(400).json({ error: "Aucun fichier téléversé." });
+    }
+
+    
+    const [quizRows] = await pool.query(
+        "SELECT id FROM quizzes WHERE id = ? AND teacher_id = ?",
+        [quiz_id, teacherId]
+    );
+
+    if (quizRows.length === 0) {
+        return res.status(403).json({ error: "Vous n'êtes pas autorisé à importer un quiz qui ne vous appartient pas." });
+    }
+
+
+    const filePath = req.file.path;
+    const fileType = req.file.mimetype;
 
     try {
-       
-        const prompt = `Génère ${num_questions} questions à choix multiples sur le sujet : ${title}. Niveau : ${level}.
-        Format :
-        1. Question: ...
-           Options: [A) ..., B) ..., C) ..., D) ...]
-           Correct Answer: A, B, C, ou D.`;
-
-        const response = await openai.createCompletion({
-            model: 'gpt-4',
-            prompt,
-            max_tokens: 500,
-            temperature: 0.7,
+        
+        const courseText = await extractTextFromFile(filePath, fileType);
+        const response = await openai.chat.completions.create({
+            model: "gpt-4-turbo",
+            messages: [
+                { role: "system", content: "You are an AI that generates multiple-choice quiz questions from educational content." },
+                { role: "user", content: `Generate a multiple-choice quiz from the following text:\n${courseText}` }
+            ]
         });
 
-        if (!response.data.choices || !response.data.choices[0].text) {
-            throw new Error("Réponse invalide de l'API OpenAI.");
-        }
+        const aiQuiz = response.choices[0].message.content;
 
-        const generatedText = response.data.choices[0].text.trim();
-        const questions = Quiz.parseGeneratedQuestions(generatedText);
+        await pool.query(
+            "UPDATE quizzes SET questions = ? WHERE id = ? AND teacher_id = ?",
+            [aiQuiz, quiz_id, teacherId]
+        );
 
-        if (questions.length === 0) {
-            throw new Error("Aucune question valide n'a été générée.");
-        }
-
-        const connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        try {
-            
-            const [quizResult] = await connection.query(
-                "INSERT INTO quizzes (teacher_id, module_id, title, status, timed_by, duration) VALUES (?, ?, ?, 'Draft', 'quiz', 30)",
-                [teacher_id, module_id, title]
-            );
-            const quizId = quizResult.insertId;
-            for (const q of questions) {
-                const [questionResult] = await connection.query(
-                    "INSERT INTO questions (quiz_id, question_text) VALUES (?, ?)",
-                    [quizId, q.question]
-                );
-                const questionId = questionResult.insertId;
-
-                for (const [index, option] of q.options.entries()) {
-                    await connection.query(
-                        "INSERT INTO answers (question_id, answer_text, is_correct) VALUES (?, ?, ?)",
-                        [questionId, option, q.correct === index ? 1 : 0]
-                    );
-                }
-            }
-            await connection.commit();
-            res.json({ message: 'Quiz créé avec succès.', quiz_id: quizId });
-
-        } catch (error) {
-        
-            await connection.rollback();
-            console.error("Erreur lors de l'insertion dans la base de données :", error);
-            res.status(500).json({ error: "Erreur lors de la création du quiz." });
-
-        } finally {
-           
-            connection.release();
-        }
+        return res.status(201).json({ message: "Quiz updated successfully!", quiz: aiQuiz });
 
     } catch (error) {
-        console.error("Erreur lors de la génération du quiz :", error);
-        res.status(500).json({ error: "Erreur lors de la génération du quiz." });
+        console.error("AI Quiz Generation Error:", error);
+        return res.status(500).json({ error: "Failed to generate quiz." });
     }
-}; */
+};
+
+
 
 export default {
     createQuiz,
@@ -534,15 +560,12 @@ export default {
     update_status ,
     update_timedby ,
     startQuizTeach ,
-    /*
     randomazation ,
-    */
     autoSubmitQuiz,
     submitQuizManually,
     startQuiz , 
-    /*
     importQuiz ,
-    createQuizWithAI ,*/
-
-
+    createQuizByAI,
+    extractTextFromFile ,
+   
 } ; 
