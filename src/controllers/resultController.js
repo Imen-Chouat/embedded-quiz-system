@@ -37,7 +37,7 @@ export const questionChoicePercentage = async (req ,res) => {
             let percentage = await Result.choicePercentage(question_id, answer.id);
             result.push({ answer_id: answer.id , answer_text: answer.answer_text, percentage });
         }
-        res.status(200).json({ question_id, answersPercentages: result });
+        res.status(200).json({message:"successful fetching of the question percentage", question_id, answersPercentages: result });
     } catch (error) {
         res.status(500).json({ message:'error finding the choices percentage'});
     }
