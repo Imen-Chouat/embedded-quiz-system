@@ -39,7 +39,7 @@ router.post("/start-quiz", authTeacherMiddleware, quizController.startQuizTeach)
 router.post("/importQuiz",authTeacherMiddleware , upload.single('file'), quizController.importQuiz);
 router.get("/randomize/:quizId", quizController.randomazation);
 router.post("/createQuizByAI",authTeacherMiddleware , upload.single('file'), quizController.createQuizByAI);
-
+router.get("/reviewDraftQuiz",authTeacherMiddleware,quizController.SeeDraftQuiz);
 export default router;
 
 
