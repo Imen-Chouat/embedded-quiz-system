@@ -8,7 +8,8 @@ import multer from "multer";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import OpenAI from "openai";
-
+import Question from '../modules/Question.js';
+import Answer from '../modules/Answer.js';
 
 const openai = new OpenAI({ apiKey: "YOUR_OPENAI_API_KEY" });
 
@@ -545,8 +546,25 @@ const createQuizByAI = async (req, res) => {
         return res.status(500).json({ error: "Failed to generate quiz." });
     }
 };
-
-
+//Imen : Review the drafted question getting each question and it's answers
+const SeeDraftQuiz = async (req ,res )=>{
+    try {
+        const {quiz_id} = req.body ;
+        const quiz = await Quiz.findById(quiz_id);
+        let questions = await Question.getQuizQuestions(quiz_id);
+        let questionNanswers = await Promise.all(
+            questions.map(async (question) => {
+                let answers = await Answer.getAnswersByQuestionId(question.id);
+                return { question, answers };
+            })
+        );
+        return res.status(200).json({message:'successfully returned the draft quiz info',draft: {
+            quiz, questionNanswers
+        }});
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
+    }
+}
 
 export default {
     createQuiz,
@@ -567,5 +585,5 @@ export default {
     importQuiz ,
     createQuizByAI,
     extractTextFromFile ,
-   
+    SeeDraftQuiz
 } ; 
