@@ -11,5 +11,6 @@ router.patch('/modify_LastName',authenticateStudent ,studentControllers.modify_L
 router.patch('/modify_FirstName',authenticateStudent ,studentControllers.modify_FirstName );
 router.patch('/modify_password',authenticateStudent ,studentControllers.modify_password );
 router.patch('/modify_group',authenticateStudent ,studentControllers.modify_group );
+router.get('/reviewQuiz',authenticateStudent ,studentControllers.reviewQuiz );
 
 export default router;
