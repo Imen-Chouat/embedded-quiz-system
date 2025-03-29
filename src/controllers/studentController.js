@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import envConfig from '../config/envConfig.js';
 import Student from '../modules/Student.js';
 import pool from '../config/dbConfig.js';
+import Question from '../modules/Question.js';
+import Quiz from '../modules/Quiz.js';
+import Answer from '../modules/Answer.js';
 
 
 const registerStudent = async (req, res) => {
@@ -158,16 +161,48 @@ const modify_group = async (req,res) =>{
             return res.status(500).json({ message: "Server error", error: error.message });
         }
 }
+//Imen : reviewing a student attempt for a specific quiz ( takes in : the quiz id and the student id , returns an object containing 2 fields : 1- message to inform about the result // 2- quizAttemts a json contaning 2 fields : 2-1 quiz will contain the quiz infos , 2-2 questionNanswer will associate for each question the student answer and if it is correct
+const reviewQuiz = async (req,res) => {
+    try {
+        const {student_id,quiz_id} = req.body ;
+        const [attended] = await pool.execute(`SELECT * FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`,[quiz_id,student_id]);
+        if(!attended.length){
+            return res.status(404).json({message:"the student did not attend this quiz ."});
+        }
+        const questions = await Question.getQuizQuestions(quiz_id);
+        let questionNanswer = await Promise.all(
+            questions.map(async (question) => {
+                const [answer] = await pool.execute(
+                    `SELECT * FROM student_responses WHERE student_id = ? AND question_id = ? AND quiz_id = ?`,
+                    [student_id, question.id, quiz_id]
+                );
 
+                if (answer.length === 0) {
+                    return { question, answer: null }; // No answer for this question
+                }
+
+                let { answer_text, is_correct } = await Answer.getAnswerById(answer[0].id);
+                return { 
+                    question, 
+                    answer: { id: answer[0].id, answer_text, is_correct } 
+                };
+            })
+        );
+        const quiz = await Quiz.findById(quiz_id);
+        return res.status(200).json({message:"successful fetching of the review",
+            quizAttempt: {quiz,questionNanswer}
+        });
+    } catch (error) {
+        return res.status(500).json({message:"error fetching the quiz review"});
+    }
+}  
 export default {
     registerStudent ,
     loginStudent ,
     modify_LastName , 
-    
     modify_FirstName ,
-
     modify_password ,
-    modify_group
-
+    modify_group,
+    reviewQuiz
 };
 
