@@ -53,11 +53,33 @@ static async getQuizSuccessRate(quiz_id) {
     }
 }
 
-
+    static async numberOfchoices(question_id){
+        try {
+            const [rows] = await pool.execute(`SELECT COUNT(*)AS count FROM answers WHERE question_id = ?`,[question_id]);
+            return rows[0].count ;
+        } catch (error) {
+            throw new Error(`Error counting the number of choices for the question: ${error.message}`);
+        }
+    }
+const choicePercentage = async (question_id,answer_id) {
+        try {
+            const numberOfchoices =await this.numberOfchoices(question_id);
+            if(numberOfchoices){
+                const [rows] = await pool.execute(`SELECT COUNT(*) AS count FROM student_responses WHERE answer_id = ?`,[answer_id]);
+                const choiceRepetition = rows[0].count ;
+                const percentage = (choiceRepetition / numberOfchoices ) * 100 ;
+                return percentage ;
+            }
+            return -1 ;
+        } catch (error) {
+            throw new Error(`Error calculating choice percentage: ${error.message}`);
+        }
+    }
 
 export default {
     getQuizAttendance,
     getAverageQuizGrade,
-    getQuizSuccessRate
+    getQuizSuccessRate,
+    choicePercentage
 };
 
