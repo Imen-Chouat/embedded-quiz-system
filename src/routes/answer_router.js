@@ -9,5 +9,6 @@ router.get("/question/:question_id", AnswerController.getAnswersByQuestionId);
 router.put("/:id/text", AnswerController.updateAnswerText);
 router.put("/:id/correctness", AnswerController.updateAnswerCorrectness);
 router.delete("/:id", AnswerController.deleteAnswer);
+router.post('/submit', .AnswerController.submitAnswer); 
 
 export default router;
