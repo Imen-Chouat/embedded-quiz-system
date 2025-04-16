@@ -76,4 +76,45 @@ class Answer {
     }
 }
 
+
+static async submitAnswer({ student_id, quiz_id, question_id, answer_id }) {
+    try {
+        // Vérifier si une rep existe deja  
+        const [existing] = await pool.query(
+            `SELECT * FROM student_responses WHERE student_id = ? AND quiz_id = ? AND question_id = ?`,
+            [student_id, quiz_id, question_id]
+        );
+        if (existing.length > 0) {
+            await pool.query(
+        `UPDATE student_responses SET answer_id = ?, is_correct = ? WHERE student_id = ? AND quiz_id = ? AND question_id = ?`,
+        [answer_id, is_correct, student_id, quiz_id, question_id]
+    );
+    return { message: " answer updated " };
+        }
+
+        let is_correct = null;
+
+        // Vérifie si une réponse est correcte 
+        if (answer_id !== null) {
+            const [correctAnswer] = await pool.query(
+                `SELECT is_correct FROM answers WHERE id = ?`,
+                [answer_id]
+            );
+            if (correctAnswer.length > 0) {
+                is_correct = correctAnswer[0].is_correct;
+            }
+        }
+
+        // Insère la réponse
+        const [result] = await pool.query(
+            `INSERT INTO student_responses (student_id, quiz_id, question_id, answer_id, is_correct)
+             VALUES (?, ?, ?, ?, ?)`,
+            [student_id, quiz_id, question_id, answer_id, is_correct]
+        );
+
+        return { message: "Réponse soumise", response_id: result.insertId, is_correct };
+    } catch (error) {
+        return { error: error.message };
+    }
+}
 export default Answer;
