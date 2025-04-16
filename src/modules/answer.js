@@ -74,7 +74,7 @@ class Answer {
             return { error: error.message };
         }
     }
-}
+
 
 
 static async submitAnswer({ student_id, quiz_id, question_id, answer_id }) {
@@ -116,5 +116,6 @@ static async submitAnswer({ student_id, quiz_id, question_id, answer_id }) {
     } catch (error) {
         return { error: error.message };
     }
+}
 }
 export default Answer;
