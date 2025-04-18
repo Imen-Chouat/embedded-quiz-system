@@ -7,14 +7,14 @@ const PPG = () => {
   const [lastName, setLastName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [backendPassword, setBackendPassword] = useState('password123'); // fetch backend password
-  const [errorMessage, setErrorMessage] = useState(''); // Error message state
-  const [passwordUpdated, setPasswordUpdated] = useState(false); // State for success message
+  const [backendPassword, setBackendPassword] = useState('password123'); 
+  const [errorMessage, setErrorMessage] = useState(''); 
+  const [passwordUpdated, setPasswordUpdated] = useState(false); 
   const navigate = useNavigate();
   const token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJtZW5UZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzQ0ODA4ODQ4LCJleHAiOjE3NDU0MTM2NDh9.theIqhtcRFSq8OgCCM6r4FEeuhuTqGUnlfcRrbJl6-k";
 
  useEffect(() => {
-    fetch('http://10.0.3.96:5000/api/user/profile') // Adjust path if needed
+    fetch('http://10.0.3.96:5000/api/user/profile') 
       .then(res => res.json())
       .then(data => {
         setEmail(data.email);
@@ -44,25 +44,24 @@ const PPG = () => {
   const handlePasswordChange = (e) => {
     e.preventDefault();
 
-    // Reset error message on new submission
+    
     setErrorMessage('');
 
-    // Check if current password matches the one in the backend
+   
     if (currentPassword === backendPassword) {
-      // Simulate sending the new password to the backend
+     
       alert('Password updated successfully!');
-      
-      // Here, you can call your API to update the password
-      setBackendPassword(newPassword); // Update the backend password with the new one
+  
+      setBackendPassword(newPassword);
 
-      // Optionally, reset current and new password fields
+   
       setCurrentPassword('');
       setNewPassword('');
 
-      // Indicate password is updated
+    
       setPasswordUpdated(true);
     } else {
-      setErrorMessage('Current password is incorrect!'); // Show error message
+      setErrorMessage('Current password is incorrect!'); 
     }
   };
   return (
