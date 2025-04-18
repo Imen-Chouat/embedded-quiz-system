@@ -1,0 +1,35 @@
+footer {
+    background-color: #EDF2FA;
+    color: #333;
+    padding: 40px 0;
+    margin-top: 40px;
+  }
+  
+  footer .container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 20px;
+  }
+  
+  footer .section {
+    flex: 1;
+    padding: 10px 20px;
+    min-width: 200px;
+  }
+  
+  footer .description {
+    max-width: 400px;
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  
+  footer .list {
+    list-style: none;
+    padding: 0;
+    line-height: 1.8;
+    font-size: 14px;
+  }
+  
