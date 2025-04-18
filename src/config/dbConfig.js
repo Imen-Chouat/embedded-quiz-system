@@ -37,14 +37,12 @@ async function createStudentsTable() {
         const [results] = await pool.query(`
             CREATE TABLE IF NOT EXISTS students (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                group_id INT,
                 last_name VARCHAR(100) NOT NULL,
                 first_name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                refresh_token VARCHAR(255) DEFAULT NULL,
-                FOREIGN KEY (group_id) REFERENCES student_groups(id) ON DELETE SET NULL
+                refresh_token VARCHAR(255) DEFAULT NULL
             );
         `);
     } catch (error) {
@@ -249,6 +247,22 @@ async function createLevelModule() {
         console.error(error);
     }
 }
+async function createStudentGroupCsvTable() {
+    try {
+        const [result] = await pool.query(`
+            CREATE TABLE IF NOT EXISTS student_group_csv (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                group_id INT NOT NULL,
+                FOREIGN KEY (email) REFERENCES students(email) ON DELETE CASCADE,
+                FOREIGN KEY (group_id) REFERENCES student_groups(id) ON DELETE CASCADE
+            );
+        `);
+    } catch (error) {
+        console.error('Error creating student_group_csv table:', error);
+    }
+}
+
 async function createTables() {
     await createTeachersTable();
     await createStudentsTable();
@@ -264,6 +278,7 @@ async function createTables() {
     await createModulesTable();
     await createTeachModule();
     await createLevelModule();
+    await createStudentGroupCsvTable();
 }
 createTables();
 
