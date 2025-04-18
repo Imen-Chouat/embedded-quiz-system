@@ -26,13 +26,13 @@ const Chginfo = () => {
   const handleProfileUpdate = (e) => {
     e.preventDefault();
 
-    // Save updated profile to localStorage
+   
     localStorage.setItem('userProfile', JSON.stringify({ firstName, lastName, email }));
 
     setProfileUpdated(true);
     setTimeout(() => {
       setProfileUpdated(false);
-      navigate('/profile'); // Redirect to profile page
+      navigate('/profile'); 
     }, 1000);
   };
 
@@ -124,7 +124,12 @@ const Chginfo = () => {
             </div>
           )}
            <div className="bottom-row">
-            <button className="but-btn yellow-btn">Save</button>
+            <button className="but-btn yellow-btn"
+            onClick={()=> 
+              navigate('/', {
+                state:{ firstName,lastName,email}
+              })
+          }>Save</button>
           </div> 
         </form>
       </div>
@@ -133,3 +138,4 @@ const Chginfo = () => {
 };
 
 export default Chginfo;
+
