@@ -1,0 +1,235 @@
+/* Main container */
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Branding section - left-aligned with Inter font */
+.branding-section {
+  width: 50%;
+  padding: 3rem;
+  color: #202020;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.brand-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.brand-subtitle {
+  font-size: 70px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 20px;
+}
+
+/* Form section */
+.form-section {
+  position: relative; /* Needed for absolute positioning */
+    width: 50%; /* Takes half the screen */
+    min-height: 100vh; /* Full viewport height */
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;              /* This ensures the image respects the border radius */
+}
+
+
+.form-wrapper {
+  position: absolute;
+  z-index: 2;
+  right: 1%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 45%;
+  max-width: 28rem;
+  min-height: 40%; /* Reduced from 60% */
+  padding: 2rem;
+  background-color: white;
+  box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 20px;
+  border: 1px solid rgba(24, 79, 120, 0.1);
+}
+
+.form-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+}
+
+/* Form elements */
+.form-group {
+  margin-bottom: 1rem;
+  width: 90%; /* Increased width for form inputs */
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+  text-align: left;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 15px;
+  border: 1px solid #184F78;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  color: #202020;
+  background-color: white;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #184F78;
+  box-shadow: 0 0 0 1px #184F78;
+}
+
+/* Remember me checkbox */
+.remember-me {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.remember-checkbox {
+  margin-right: 0.5rem;
+}
+
+.remember-label {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+/* Buttons */
+.signin-button {
+  width: 90%;
+  padding: 8px 15px;
+  background-color: #184F78;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.signin-button:hover {
+  background-color: #10789E;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  width: 90%;
+}
+
+.divider-line {
+  flex-grow: 1;
+  height: 1px;
+  background-color: #d1d5db;
+}
+
+.divider-text {
+  padding: 0 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Google button */
+.google-button {
+  width: 90%;
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  border: 1px solid #184F78;
+  border-radius: 0.25rem;
+  color: #184F78;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.google-button:hover {
+  background-color: #f9fafb;
+}
+
+.google-icon {
+  font-size: 1.25rem;
+}
+
+/* Sign up link */
+.signup-link {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 1.5rem;
+}
+
+.signup-text {
+  color: #10789E;
+  cursor: pointer;
+}
+
+.signup-text:hover {
+  text-decoration: underline;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+  }
+  
+  .branding-section {
+    width: 100%;
+    padding: 2rem;
+  }
+  
+  .brand-subtitle {
+    font-size: 40px;
+  }
+  
+  .form-section {
+    width: 100%;
+    min-height: auto;
+    padding: 2rem 0;
+  }
+  
+  .form-wrapper {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    width: 90%;
+    margin: 0 auto;
+  }
+}
