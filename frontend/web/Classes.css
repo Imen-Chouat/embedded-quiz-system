@@ -1,0 +1,94 @@
+.class-container {
+  background: #fff;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 1000px;
+}
+
+.class-block {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap:40px;
+}
+.section-title {
+  font-size: 1.8rem;
+  color: #184f78;
+  margin-bottom: 1.5rem;
+}
+.class-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 120px;
+}
+
+.class-name {
+  background-color: #D5E6DF;
+  border: 2px solid #ccc;
+  padding: 80px 70px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: flex-start; 
+  min-width: 150px;
+  text-align: center;
+}
+
+.class-name:hover {
+  background-color: #217c58;
+}
+
+
+.sections-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+  gap: 120px;
+  flex-wrap: wrap;
+}
+
+.section-pill {
+  background-color:#edeaef;
+  padding: 10px 40px;
+  border-radius: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+.group-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.group-pill {
+  background-color: #f7e4af;
+  padding: 7px 20px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+.section-pill:hover {
+  background-color: #4d2c5e;
+}
+.group-pill:hover {
+  background-color:  #fbbc05;
+}
