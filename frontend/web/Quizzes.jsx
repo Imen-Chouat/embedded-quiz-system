@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './ProfilePage.css';
+import './Quizzes.css';
 import ct from '../assets/create.png';
 import im from '../assets/import.png';
 import ai from '../assets/ai.png';
