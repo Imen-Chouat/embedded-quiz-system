@@ -31,42 +31,26 @@ async function createTeachersTable() {
         console.error('Error creating teachers table:', error);
     }
 }
-async function createQuizNotificationsTable() {
-    try {
-      const [result] = await pool.query(`
-        CREATE TABLE IF NOT EXISTS quiz_notifications (
-          id INT PRIMARY KEY AUTO_INCREMENT,
-          student_id INT,
-          quiz_id INT,
-          notified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          is_read BOOLEAN NOT NULL DEFAULT FALSE,
-          FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-          FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
-        );
-      `);
-    } catch (error) {
-      console.error('Erreur lors de la création de quiz_notifications :', error);
-    }
-  }
 
 async function createStudentsTable() {
     try {
-        const [results] = await pool.query(`
+        const [result] = await pool.query(`
             CREATE TABLE IF NOT EXISTS students (
                 id INT PRIMARY KEY AUTO_INCREMENT,
+                group_id INT,
                 last_name VARCHAR(100) NOT NULL,
                 first_name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                refresh_token VARCHAR(255) DEFAULT NULL
+
+                refrech_token VARCHAR(255) DEFAULT NULL
             );
         `);
     } catch (error) {
         console.error('Error creating table:', error);
     }
 }
-
 async function createQuizzesTable() {
     try {
         const [result] = await pool.query(`
@@ -75,9 +59,9 @@ async function createQuizzesTable() {
                     teacher_id INT,
                     module_id INT,
                     title VARCHAR(255) NOT NULL,
-                    status ENUM('draft', 'published') NOT NULL,
+                    status ENUM('Draft', 'Past') NOT NULL DEFAULT Draft ,
                     timed_by ENUM('quiz','question') NOT NULL,
-                    duration_minutes INT,
+                    duration INT,
                     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
                     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE 
                 );
@@ -190,7 +174,7 @@ async function createQuizAttempts() {
                     quiz_id INT,
                     start_time DATETIME NOT NULL,
                     end_time DATETIME,
-                    status ENUM('not_submitted', 'completed') NOT NULL,
+                    status ENUM('inprogress', 'submitted') NOT NULL,
                     score FLOAT,
                     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
                     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
@@ -280,24 +264,24 @@ async function createStudentGroupCsvTable() {
     }
 }
 
-async function createTables() {
-    await createTeachersTable();
-    await createStudentsTable();
-    await createQuizzesTable();
-    await createQuestionsTable();
-    await createAnswersTable();
-    await createStudentGroupsTable();
-    await createSectionsTable();
-    await createLevelsTable();
-    await createQuizParticipants();
-    await createQuizAttempts();
-    await createStudentResponses();
-    await createModulesTable();
-    await createTeachModule();
-    await createLevelModule();
-    await createStudentGroupCsvTable();
-   await createQuizNotificationsTable();
-}
+    async function createTables() {
+        await createLevelsTable();
+        await createSectionsTable();
+        await createStudentGroupsTable();
+        await createModulesTable();
+        await createLevelModule ();
+        await createTeachModule();
+        await createTeachersTable();
+        await createStudentsTable();
+        await createQuizzesTable();
+        await createQuestionsTable();
+        await createAnswersTable();
+        await createQuizParticipants();
+        await createQuizAttempts();
+        await createStudentResponses();
+        await createStudentGroupCsvTable();
+    }
+    
 createTables();
 
 export default pool ;
