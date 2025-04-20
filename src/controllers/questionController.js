@@ -1,7 +1,7 @@
 import Question from '../modules/Question.js';
 
 // Ajouter une question
-export const createQuestion = async (req, res) => {
+ const createQuestion = async (req, res) => {
     try {
         const { quiz_id, question_text, duration_seconds, grade } = req.body;
         if (!quiz_id || !question_text) return res.status(400).json({ error: "Missing required fields" });
@@ -14,7 +14,7 @@ export const createQuestion = async (req, res) => {
 };
 
 // Récupérer une question par ID
-export const getQuestionById = async (req, res) => {
+ const getQuestionById = async (req, res) => {
     try {
         const { id } = req.params;
         const question = await Question.getQuestionById(id);
@@ -26,7 +26,7 @@ export const getQuestionById = async (req, res) => {
 };
 
 // Mettre à jour le texte d'une question
-export const updateQuestionText = async (req, res) => {
+ const updateQuestionText = async (req, res) => {
     try {
         const { id } = req.params;
         const { question_text } = req.body;
@@ -39,7 +39,7 @@ export const updateQuestionText = async (req, res) => {
 };
 
 // Mettre à jour la durée d'une question
-export const updateQuestionDuration = async (req, res) => {
+ const updateQuestionDuration = async (req, res) => {
     try {
         const { id } = req.params;
         const { duration_seconds } = req.body;
@@ -52,7 +52,7 @@ export const updateQuestionDuration = async (req, res) => {
 };
 
 // Mettre à jour la note d'une question
-export const updateQuestionGrade = async (req, res) => {
+ const updateQuestionGrade = async (req, res) => {
     try {
         const { id } = req.params;
         const { grade } = req.body;
@@ -65,7 +65,7 @@ export const updateQuestionGrade = async (req, res) => {
 };
 
 // Supprimer une question
-export const deleteQuestion = async (req, res) => {
+ const deleteQuestion = async (req, res) => {
     try {
         const { id } = req.params;
         const deletedQuestion = await Question.deleteQuestion(id);
@@ -77,7 +77,7 @@ export const deleteQuestion = async (req, res) => {
 };
 
 // Récupérer toutes les questions d'un quiz
-export const getQuizQuestions = async (req, res) => {
+ const getQuizQuestions = async (req, res) => {
     try {
         const { quiz_id } = req.params;
         const questions = await Question.getQuizQuestions(quiz_id);
