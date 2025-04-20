@@ -2,7 +2,7 @@ import Answer from '../modules/answer.js';
 
 
 // Ajouter une réponse
-export const createAnswer = async (req, res) => {
+ const createAnswer = async (req, res) => {
     try {
         const { question_id, answer_text, is_correct } = req.body;
         const newAnswer = await Answer.createAnswer({ question_id, answer_text, is_correct });
@@ -14,7 +14,7 @@ export const createAnswer = async (req, res) => {
 };
 
 // Récupérer une réponse par ID
-export const getAnswerById = async (req, res) => {
+ const getAnswerById = async (req, res) => {
     try {
         const { id } = req.params;
         const answer = await Answer.getAnswerById(id);
@@ -26,7 +26,7 @@ export const getAnswerById = async (req, res) => {
 };
 
 // Récupérer toutes les réponses d'une question
-export const getAnswersByQuestionId = async (req, res) => {
+ const getAnswersByQuestionId = async (req, res) => {
     try {
         const { question_id } = req.params;
         const answers = await Answer.getAnswersByQuestionId(question_id);
@@ -37,7 +37,7 @@ export const getAnswersByQuestionId = async (req, res) => {
 };
 
 // Mettre à jour le texte d'une réponse
-export const updateAnswerText = async (req, res) => {
+ const updateAnswerText = async (req, res) => {
     try {
         const { id } = req.params;
         const { answer_text } = req.body;
@@ -50,7 +50,7 @@ export const updateAnswerText = async (req, res) => {
 };
 
 // Mettre à jour si une réponse est correcte ou non
-export const updateAnswerCorrectness = async (req, res) => {
+ const updateAnswerCorrectness = async (req, res) => {
     try {
         const { id } = req.params;
         const { is_correct } = req.body;
@@ -63,7 +63,7 @@ export const updateAnswerCorrectness = async (req, res) => {
 };
 
 
-export const deleteAnswer = async (req, res) => {
+ const deleteAnswer = async (req, res) => {
     try {
         const { id } = req.params;
         const deletedAnswer = await Answer.deleteAnswer(id);
@@ -73,7 +73,7 @@ export const deleteAnswer = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-export const submitAnswer = async (req, res) => {
+ const submitAnswer = async (req, res) => {
     try {
         const { student_id, quiz_id, question_id, answer_id } = req.body;
 
