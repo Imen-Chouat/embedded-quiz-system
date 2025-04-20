@@ -248,6 +248,23 @@ async function createLevelModule() {
         console.error(error);
     }
 }
+async function createQuizNotificationsTable() {
+    try {
+      const [result] = await pool.query(`
+        CREATE TABLE IF NOT EXISTS quiz_notifications (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          student_id INT,
+          quiz_id INT,
+          notified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          is_read BOOLEAN NOT NULL DEFAULT FALSE,
+          FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+          FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
+        );
+      `);
+    } catch (error) {
+      console.error('Erreur lors de la création de quiz_notifications :', error);
+    }
+  }
 async function createStudentGroupCsvTable() {
     try {
         const [result] = await pool.query(`
@@ -280,6 +297,7 @@ async function createStudentGroupCsvTable() {
         await createQuizAttempts();
         await createStudentResponses();
         await createStudentGroupCsvTable();
+        await createQuizNotificationsTable();
     }
     
 createTables();
