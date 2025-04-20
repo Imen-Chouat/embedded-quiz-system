@@ -1,6 +1,6 @@
 import Result from '../modules/Result.js';
 import Answer from '../modules/Answer.js';
-export const getQuizAttendance = async (req, res) => {
+ const getQuizAttendance = async (req, res) => {
     try {
         const { quiz_id } = req.params;
         const attendance = await Result.getQuizAttendance(quiz_id);
@@ -10,7 +10,7 @@ export const getQuizAttendance = async (req, res) => {
     }
 };
 
-export const getAverageQuizGrade = async (req, res) => {
+ const getAverageQuizGrade = async (req, res) => {
     try {
         const { quiz_id } = req.params;
         const averageGrade = await Result.getAverageQuizGrade(quiz_id);
@@ -19,7 +19,7 @@ export const getAverageQuizGrade = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-xport const getQuizSuccessRate = async (req, res) => {
+ const getQuizSuccessRate = async (req, res) => {
     try {
         const { quiz_id } = req.params;
         const successRate = await Result.getQuizSuccessRate(quiz_id);
@@ -28,7 +28,7 @@ xport const getQuizSuccessRate = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-export const questionChoicePercentage = async (req ,res) => {
+ const questionChoicePercentage = async (req ,res) => {
     try {
         const {question_id} = req.body ;
         let answers = await Answer.getAnswersByQuestionId(question_id);
