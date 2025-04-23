@@ -59,7 +59,7 @@ async function createQuizzesTable() {
                     teacher_id INT,
                     module_id INT,
                     title VARCHAR(255) NOT NULL,
-                    status ENUM('Draft', 'Past') NOT NULL DEFAULT Draft ,
+                    status ENUM('Draft', 'Past') NOT NULL DEFAULT 'Draft' ,
                     timed_by ENUM('quiz','question') NOT NULL,
                     duration INT,
                     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
