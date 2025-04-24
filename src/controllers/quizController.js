@@ -1,4 +1,3 @@
-
 import jwt from "jsonwebtoken";
 import envConfig from "../config/envConfig.js";
 import Quiz from "../modules/Quiz.js";
@@ -11,16 +10,15 @@ import mammoth from "mammoth";
 import OpenAI from "openai";
 
 
-const openai = new OpenAI({ apiKey:  process.env.OPENAI_API_KEY,
-
- });
-
-
- const createQuiz = async (req, res) => {
+const createQuiz = async (req, res) => {
     try {
         const teacher_id = req.teacher.id;
         const { title, module, timed_by, duration } = req.body;
-
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9]):([0-5]?[0-9])$/;
+        
+        if (timed_by === 'quiz' && !timeRegex.test(duration)) {
+            return res.status(400).json({ message: "Invalid duration format. Use 'HH:MM:SS'." });
+        }
         const [moduleRows] = await pool.execute(
             `SELECT id FROM modules WHERE moduleName = ?`,
             [module]
@@ -30,6 +28,7 @@ const openai = new OpenAI({ apiKey:  process.env.OPENAI_API_KEY,
         }
 
         const module_id = moduleRows[0].id;
+
         const [teachRows] = await pool.execute(
             `SELECT * FROM teach_module WHERE teacher_id = ? AND module_id = ?`,
             [teacher_id, module_id]
@@ -39,18 +38,17 @@ const openai = new OpenAI({ apiKey:  process.env.OPENAI_API_KEY,
         }
 
         let quizDuration;
+
         if (timed_by === 'quiz') {
-            if (typeof duration !== 'number' || duration <= 0) {
-                return res.status(400).json({ message: "Duration must be a positive number when timed_by is 'quiz'." });
-            }
-            quizDuration = duration;
+            quizDuration = duration;  
         } else if (timed_by === 'question') {
-            quizDuration = 0;
+            quizDuration = "00:00:00"; 
         } else {
             return res.status(400).json({ message: "Invalid timed_by value. Must be 'quiz' or 'question'." });
         }
         const quizId = await Quiz.create(teacher_id, module_id, title, timed_by, quizDuration);
         const quiz = await Quiz.findById(quizId);
+
         return res.status(201).json({ quiz });
 
     } catch (error) {
@@ -58,6 +56,7 @@ const openai = new OpenAI({ apiKey:  process.env.OPENAI_API_KEY,
         return res.status(500).json({ message: "Failed to create quiz. Please try again later." });
     }
 };
+
 
 const deleteQuiz = async (req, res) => {
     try {
@@ -234,7 +233,7 @@ const randomazation = async (req, res) => {
 };
 // submission 
 // ki student ydir start quiz manuellement
-const startQuiz= async (req, res) => {
+const startQuizstudent= async (req, res) => {
     try {
         const studentId = req.student.id; 
         const { quizId } = req.body; 
@@ -247,7 +246,7 @@ const startQuiz= async (req, res) => {
 }
 
 // Submit a quiz manually
-// hna ntesti w mbe3d nchof itha njib id mn la req.param wla req.body
+
 const submitQuizManually = async (req, res) => {
     try {
         const studentId = req.student.id; 
@@ -276,7 +275,7 @@ const autoSubmitQuiz = async (req, res) => {
         return res.status(500).json({ message: "Failed to schedule automatic submission." });
     }
 };
-const startQuizTeach = async (req, res) => {
+const addquizparticipants = async (req, res) => {
    
         try {
             const teacherId = req.teacher.id; 
@@ -347,9 +346,6 @@ const startQuizTeach = async (req, res) => {
       
             const values = studentIds.map(id => [quizId, id]);
             await pool.query(`INSERT INTO QuizParticipants (quiz_id, student_id) VALUES ?`, [values]);
-
-            await pool.query(`UPDATE quizzes SET status = 'Past' WHERE id = ?`, [quizId]);
-    
             return res.status(200).json({ message: "Quiz started successfully.", studentIds });
     
         } catch (error) {
@@ -512,25 +508,29 @@ const Past_Quizzesbymodule = async (req, res) => {
     }
 };
 
-//Imen : Review the drafted question getting each question and it's answers
-const SeeDraftQuiz = async (req ,res )=>{
+const startQuizbyteach = async (req, res) => {
     try {
-        const {quiz_id} = req.body ;
-        const quiz = await Quiz.findById(quiz_id);
-        let questions = await Question.getQuizQuestions(quiz_id);
-        let questionNanswers = await Promise.all(
-            questions.map(async (question) => {
-                let answers = await Answer.getAnswersByQuestionId(question.id);
-                return { question, answers };
-            })
-        );
-        return res.status(200).json({message:'successfully returned the draft quiz info',draft: {
-            quiz, questionNanswers
-        }});
+        const teacherId = req.teacher.id;
+        const { quizId } = req.body;
+    
+        const [quiz] = await pool.query(`SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`, [quizId, teacherId]);
+        if (quiz.length === 0) {
+            return res.status(404).json({ message: "Quiz not found or you don't have permission." });
+        }
+        if (quiz[0].status === "Past") {
+            return res.status(400).json({ message: "Quiz has already been started." });
+        }
+
+        await pool.query(`UPDATE quizzes SET status = 'Past', created_at = NOW() WHERE id = ?`, [quizId]);
+    
+        return res.status(200).json({ message: "Quiz started successfully." });
+    
     } catch (error) {
-        return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
+        console.error("Error starting quiz:", error);
+        return res.status(500).json({ message: "Failed to start quiz." });
     }
-}
+};
+
 
 
 
@@ -547,16 +547,12 @@ export default {
     update_title ,
     update_duration ,
     update_timedby ,
-    startQuizTeach ,
+    addquizparticipants,
     randomazation ,
     autoSubmitQuiz,
     submitQuizManually,
-    startQuiz , 
+    startQuizstudent , 
     importQuiz ,
-    SeeDraftQuiz
+    startQuizbyteach
     
 } ; 
-
-
-
-    
