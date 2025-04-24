@@ -1,15 +1,14 @@
-
 import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 
 class Quiz {
-static async create(teacher_id , module_id , title ,status , timed_by , duration ) {
+static async create(teacher_id , module_id , title , timed_by , duration ) {
     
     try {
     
         const [result] = await pool.execute(
-            `INSERT INTO quizzes (teacher_id , module_id ,  title, status, timed_by, duration) VALUES (?, ?, ?, ?, ?, ?)`,
-            [teacher_id,  module_id ,title , status, timed_by, duration]
+            `INSERT INTO quizzes (teacher_id , module_id , title , timed_by, duration) VALUES (?, ?, ?, ?, ?)`,
+            [teacher_id,  module_id ,title , timed_by, duration]
         );
         console.log('Insert result:', result);
         return result.insertId;
@@ -71,18 +70,7 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
         }
     }
     
-    static async update_status( quizId ,status) {
-        try {
-            const [result] = await pool.execute(
-                `UPDATE quizzes SET status = ? WHERE id = ?`,
-                [status, quizId]
-            );
-            return result.affectedRows > 0;
-        } catch (error) {
-            console.error("Error updating quiz:", error);
-            return false;
-        }
-    }
+    
     static async update_duration( quizId ,time) {
         try {
             const [result] = await pool.execute(
@@ -124,25 +112,7 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             return [];
         }
     }
-    // get quiz by module for a teacher 
-    
-    static async getQuizzesByModule(moduleId, teacherId) {
-        try {
-            const [quizzes] = await pool.execute(
-                `SELECT q.title,  m.moduleName 
-                 FROM quizzes q
-                JOIN modules m ON q.module_id = m.id
-                WHERE q.module_id = ? AND q.teacher_id = ?`,
-                [moduleId, teacherId]
-            );
-    
-            return quizzes;
-        } catch (error) {
-            console.error("Error fetching quizzes by module and teacher:", error);
-            throw error; 
-        }
-    }
-    
+
     static async  getQuizzesByType(teacherId, timedBy) {
         try {
         
@@ -157,15 +127,32 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             throw error; 
         }
     }
-    static async getDraftQuizzes(teacherId, module_id) {
+    // all the quizzes created by a teacher on all modules 
+    static async getAllQuizzesByTeacher(teacherId) {
         try {
             const [quizzes] = await pool.execute(
-                `SELECT q.title,  m.moduleName 
+                `SELECT q.title, q.created_at, m.moduleName 
                  FROM quizzes q
-                JOIN modules m ON q.module_id = m.id
-                WHERE q.module_id = ? AND q.teacher_id = ? AND q.status = 'Draft'`,
+                 JOIN modules m ON q.module_id = m.id
+                 WHERE q.teacher_id = ?`,
+                [teacherId] 
+            );
+            return quizzes;
+        } catch (error) {
+            console.error("Error fetching quizzes by teacher:", error);
+            throw error;
+        }
+    }
+    
+    static async getDraftQuizzes(teacherId) {
+        try {
+            const [quizzes] = await pool.execute(
+            `SELECT q.title, q.created_at, m.moduleName 
+             FROM quizzes q
+             JOIN modules m ON q.module_id = m.id
+             WHERE q.teacher_id = ? AND q.status = 'Draft'`,
                  
-                [module_id ,teacherId]
+                [teacherId]
             );
             return quizzes;
         } catch (error) {
@@ -173,14 +160,15 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             throw error; 
         }
     }
-    static async getPastQuizzes(teacherId, module_id) {
+    static async getPastQuizzes(teacherId) {
         try {
             const [quizzes] = await pool.execute(
-                `SELECT q.title,  m.moduleName 
-                 FROM quizzes q
-                JOIN modules m ON q.module_id = m.id
-                WHERE q.module_id = ? AND q.teacher_id = ? AND q.status = 'Past'`,
-                [module_id , teacherId]
+            `SELECT q.title, q.created_at, m.moduleName 
+             FROM quizzes q
+             JOIN modules m ON q.module_id = m.id
+             WHERE q.teacher_id = ? AND q.status = 'Past'`,
+                 
+                [ teacherId]
             );
             return quizzes;
         } catch (error) {
@@ -202,6 +190,8 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             throw error;
         }
     }
+    
+    
     
     static async submitQuizManually(studentId, quizId, responses) {
         try {
@@ -284,6 +274,38 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             throw error;
         }
     }
+    static async calculateTotalDuration(quizId) {
+        try {
+            const [questions] = await pool.execute(
+                `SELECT duration_minutes FROM questions WHERE quiz_id = ?`,
+                [quizId]
+            );
+    
+            const totalDuration = questions.reduce(
+                (total, question) => total + question.duration_minutes,
+                0
+            );
+    
+            return totalDuration;
+        } catch (error) {
+            console.error("Error calculating total duration:", error);
+            throw error;
+        }
+    }
+    
+    static async updateQuizDuration(quizId, totalDuration) {
+        try {
+            
+            await pool.execute(
+                `UPDATE quizzes SET duration = ? WHERE id = ?`,
+                [totalDuration, quizId]
+            );
+        } catch (error) {
+            console.error("Error updating quiz duration:", error);
+            throw error;
+        }
+    }
+    
     
     
     static async finalizeQuizSubmission(studentId, quizId) {
@@ -303,6 +325,60 @@ static async create(teacher_id , module_id , title ,status , timed_by , duration
             [score, studentId, quizId]
         );
     }
+    // get all quizzes by a teacher for one module 
+    static async getDraftQuizzesbymodule(teacherId, module_name) {
+        try {
+            const [quizzes] = await pool.execute(
+                `SELECT q.title,q.created_at , m.moduleName 
+                 FROM quizzes q
+                 JOIN modules m ON q.module_id = m.id
+                 WHERE m.moduleName = ? AND q.teacher_id = ? AND q.status = 'Draft'` ,
+                [module_name, teacherId]
+            );
     
+            return quizzes;
+        } catch (error) {
+            console.error("Error fetching draft quizzes :", error);
+            throw error; 
+        }
+    }
+    static async getQuizzesByModule(teacherId, module_name) {
+        try {
+            const [quizzes] = await pool.execute(
+                `SELECT q.title, q.created_at ,m.moduleName 
+                 FROM quizzes q
+                 JOIN modules m ON q.module_id = m.id
+                 WHERE m.moduleName = ? AND q.teacher_id = ?`,
+                [module_name, teacherId]
+            );
+    
+            return quizzes;
+        } catch (error) {
+            console.error("Error fetching quizzes by module name and teacher:", error);
+            throw error;
+        }
+    }
+    static async getPastQuizzesbymodule(teacherId, module_name) {
+        try {
+        
+            const [quizzes] = await pool.execute(
+                `SELECT q.title,q.created_at , m.moduleName 
+                 FROM quizzes q
+                 JOIN modules m ON q.module_id = m.id
+                 WHERE m.moduleName = ? AND q.teacher_id = ? AND q.status = 'Past'` ,
+                [module_name, teacherId]
+            );
+    
+            return quizzes;
+        } catch (error) {
+            console.error("Error fetching  Past quizzes:", error);
+            throw error; 
+        }
+    }
+    
+    
+    
+
+
 }
 export default Quiz ;
