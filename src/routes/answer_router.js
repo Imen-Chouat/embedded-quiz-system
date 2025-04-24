@@ -10,6 +10,6 @@ router.put("/:id/text", AnswerController.updateAnswerText);
 router.put("/:id/correctness", AnswerController.updateAnswerCorrectness);
 router.delete("/:id", AnswerController.deleteAnswer);
 router.post('/submit', AnswerController.submitAnswer); 
-router.get("/student-answer/:student_id/:quiz_id/:question_id", getStudentAnswerForQuestion);
+router.get("/student-answer/:student_id/:quiz_id/:question_id",AnswerController. getStudentAnswerForQuestion);
 
 export default router;
