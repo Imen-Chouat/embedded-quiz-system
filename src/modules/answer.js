@@ -25,6 +25,24 @@ class Answer {
             return { error: error.message };
         }
     }
+    // Récupérer la réponse d'un étudiant pour une question spécifique
+static async getStudentAnswerForQuestion({ student_id, quiz_id, question_id }) {
+    try {
+        const [rows] = await pool.query(
+            `SELECT sr.*, a.answer_text, a.is_correct AS actual_correctness
+             FROM student_responses sr
+             JOIN answers a ON sr.answer_id = a.id
+             WHERE sr.student_id = ? AND sr.quiz_id = ? AND sr.question_id = ?`,
+            [student_id, quiz_id, question_id]
+        );
+
+        if (rows.length === 0) return { error: "Aucune réponse trouvée pour cet étudiant et cette question." };
+        return rows[0];
+    } catch (error) {
+        return { error: error.message };
+    }
+}
+
 
     // Récupérer toutes les réponses d’une question
     static async getAnswersByQuestionId(question_id) {
