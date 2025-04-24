@@ -1,3 +1,4 @@
+
 import jwt from "jsonwebtoken";
 import envConfig from "../config/envConfig.js";
 import Quiz from "../modules/Quiz.js";
@@ -8,37 +9,55 @@ import multer from "multer";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import OpenAI from "openai";
-import Question from '../modules/Question.js';
-import Answer from '../modules/Answer.js';
-
-const openai = new OpenAI({ apiKey: "YOUR_OPENAI_API_KEY" });
 
 
+const openai = new OpenAI({ apiKey:  process.env.OPENAI_API_KEY,
 
-const createQuiz = async (req, res) => {
+ });
+
+
+ const createQuiz = async (req, res) => {
     try {
-        const teacher_id = req.teacher.id; 
-        const { title, module_id, status, timed_by, duration } = req.body; 
-        const [module] = await pool.execute(
-            `SELECT module_id 
-             FROM teach_module
-             WHERE teacher_id = ? AND module_id = ?`,
-            [teacher_id, module_id] 
+        const teacher_id = req.teacher.id;
+        const { title, module, timed_by, duration } = req.body;
+
+        const [moduleRows] = await pool.execute(
+            `SELECT id FROM modules WHERE moduleName = ?`,
+            [module]
         );
+        if (moduleRows.length === 0) {
+            return res.status(400).json({ message: "Module not found." });
+        }
 
-        if (module.length === 0) {
+        const module_id = moduleRows[0].id;
+        const [teachRows] = await pool.execute(
+            `SELECT * FROM teach_module WHERE teacher_id = ? AND module_id = ?`,
+            [teacher_id, module_id]
+        );
+        if (teachRows.length === 0) {
             return res.status(403).json({ message: "Unauthorized. You can only create quizzes for modules you teach." });
-        } 
+        }
 
-        const quizId = await Quiz.create(teacher_id, module_id, title, status, timed_by, duration);
+        let quizDuration;
+        if (timed_by === 'quiz') {
+            if (typeof duration !== 'number' || duration <= 0) {
+                return res.status(400).json({ message: "Duration must be a positive number when timed_by is 'quiz'." });
+            }
+            quizDuration = duration;
+        } else if (timed_by === 'question') {
+            quizDuration = 0;
+        } else {
+            return res.status(400).json({ message: "Invalid timed_by value. Must be 'quiz' or 'question'." });
+        }
+        const quizId = await Quiz.create(teacher_id, module_id, title, timed_by, quizDuration);
         const quiz = await Quiz.findById(quizId);
+        return res.status(201).json({ quiz });
 
-        return res.status(201).json({  quiz });
     } catch (error) {
         console.error("Error creating quiz:", error);
         return res.status(500).json({ message: "Failed to create quiz. Please try again later." });
     }
-} 
+};
 
 const deleteQuiz = async (req, res) => {
     try {
@@ -66,39 +85,33 @@ const Quizzes_Type  = async (req, res) => {
         return res.status(500).json({ message: "Failed to fetch quizzes by timed_by." });
     }
 };
-const ALLQuizzes= async (req, res) => {
+
+// get allquizzes for a teacher 
+
+const ALLQuizzes2 = async (req, res) => {
     try {
-        const teacherId = req.teacher.id;
-        const { module_id } = req.query;
-
-        if (!module_id) {
-            return res.status(400).json({ message: "Module ID is required." });
-        }
-
-        const quizzes = await Quiz.getQuizzesByModule(module_id, teacherId);
+        const teacherId = req.teacher.id;  
+        const quizzes = await Quiz.getAllQuizzesByTeacher(teacherId);
 
         return res.status(200).json({ quizzes });
     } catch (error) {
-        console.error("Error in getQuizzesByModule:", error);
-        return res.status(500).json({ message: "Failed to fetch quizzes by module." });
+        console.error("Error in getAllQuizzesByTeacher:", error);
+        return res.status(500).json({ message: "Failed to fetch quizzes." });
     }
 };
-
-
 
 
 const Draft_Quizzes = async (req, res) => {
     try {
         const teacherId = req.teacher.id; 
-        const { module_id } = req.query; 
         console.log("Teacher ID:", teacherId);
-        console.log("Module ID:", module_id);
+      
 
-        if (!teacherId || !module_id) {
-            return res.status(400).json({ message: "Missing teacherId or moduleId" });
+        if (!teacherId ) {
+            return res.status(400).json({ message: "Missing teacherId " });
         }
-        const quizzes = await Quiz.getDraftQuizzes(teacherId, module_id);
-        return res.status(200).json({ quizzes });
+        const draft = await Quiz.getDraftQuizzes(teacherId);
+        return res.status(200).json({draft });
     } catch (error) {
         console.error("Error in getDraftQuizzes:", error);
         return res.status(500).json({ message: "Failed to fetch draft quizzes." });
@@ -109,9 +122,9 @@ const Draft_Quizzes = async (req, res) => {
 const Past_Quizzes = async (req, res) => {
     try {
         const teacherId = req.teacher.id; 
-        const { module_id } = req.query; 
-        const quizzes = await Quiz.getPastQuizzes(teacherId, module_id);
-        return res.status(200).json({ quizzes });
+        
+        const Past = await Quiz.getPastQuizzes(teacherId);
+        return res.status(200).json({ Past });
     } catch (error) {
         console.error("Error in getPastQuizzes:", error);
         return res.status(500).json({ message: "Failed to fetch Past quizzes ." });
@@ -173,33 +186,7 @@ const update_duration = async (req, res) => {
         return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
     }
 };
-const update_status = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-        const teacherId = req.teacher.id; 
 
-        const quiz = await Quiz.findById(id);
-        if (!quiz) {
-            return res.status(404).json({ message: "Quiz not found." });
-        }
-
-        if (quiz.teacher_id !== teacherId) {
-            return res.status(403).json({ message: "Unauthorized. You can only update your own quizzes." });
-        }
-
-        const isUpdated = await Quiz.update_status(id, status);
-        if (isUpdated) {
-            const updatedQuiz = await Quiz.findById(id);
-            return res.status(200).json({ message: "Quiz updated successfully.", quiz: updatedQuiz });
-        }
-
-        return res.status(400).json({ message: "Quiz update failed." });
-    } catch (error) {
-        console.error("Error updating quiz:", error);
-        return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
-    }
-};
 const update_timedby = async (req, res) => {
     try {
         const { id } = req.params;
@@ -378,6 +365,9 @@ const startQuizTeach = async (req, res) => {
 
 // import quiz
 // CSV format question , correct(le numéro de la reponse correct ) , options kol wahda fi ligne 
+
+
+// Configure multer for file upload
 const importQuiz = async (req, res) => {
     if (!req.teacher || !req.teacher.id) {
         return res.status(403).json({ message: "Accès interdit." });
@@ -385,6 +375,7 @@ const importQuiz = async (req, res) => {
 
     const teacherId = req.teacher.id;
     const { quiz_id } = req.body;
+    console.log(req.body);
 
     if (!quiz_id || isNaN(quiz_id)) {
         return res.status(400).json({ error: "Le quiz_id est requis et doit être un nombre valide." });
@@ -394,34 +385,33 @@ const importQuiz = async (req, res) => {
         return res.status(400).json({ error: "Aucun fichier téléversé." });
     }
 
-    
-    const [quizRows] = await pool.query(
-        "SELECT id FROM quizzes WHERE id = ? AND teacher_id = ?",
-        [quiz_id, teacherId]
-    );
-
-    if (quizRows.length === 0) {
-        return res.status(403).json({ error: "Vous n'êtes pas autorisé à importer un quiz qui ne vous appartient pas." });
-    }
-
     const questions = [];
 
     fs.createReadStream(req.file.path)
         .pipe(csv())
         .on('data', (row) => {
-            const { question, correct, ...options } = row;
+            const { question, correct } = row;
+
+            const options = Object.keys(row)
+                .filter(key => key.startsWith('option'))  
+                .map(key => row[key].trim());           
+
             if (!question || !correct) {
                 console.warn("Ligne ignorée : 'question' ou 'correct' manquant.");
                 return;
             }
-            const validOptions = Object.values(options)
-                .filter(value => value.trim() !== "")
-                .map(value => value.trim());
+
+          
+            const correctIndex = parseInt(correct) - 1; 
+            if (correctIndex < 0 || correctIndex >= options.length) {
+                console.warn(`Ligne ignorée : L'index de la réponse correcte est invalide. Index : ${correct}`);
+                return;
+            }
 
             questions.push({
                 question_text: question.trim(),
-                options: validOptions,
-                correct: correct.trim(),
+                options,
+                correct: options[correctIndex],
             });
         })
         .on('end', async () => {
@@ -432,25 +422,32 @@ const importQuiz = async (req, res) => {
             const connection = await pool.getConnection();
             try {
                 await connection.beginTransaction();
+
                 for (const q of questions) {
+                   
                     const [questionResult] = await connection.query(
                         "INSERT INTO questions (quiz_id, question_text) VALUES (?, ?)",
                         [quiz_id, q.question_text]
                     );
 
                     const questionId = questionResult.insertId;
-                    for (const [index, option] of q.options.entries()) {
+
+                    
+                    const answers = q.options.map((option, index) => [
+                        questionId, option, q.correct === option ? 1 : 0
+                    ]);
+
+                    if (answers.length > 0) {
                         await connection.query(
-                            "INSERT INTO answers (question_id, answer_text, is_correct) VALUES (?, ?, ?)",
-                            [questionId, option, q.correct === String(index + 1) ? 1 : 0]
+                            "INSERT INTO answers (question_id, answer_text, is_correct) VALUES ?",
+                            [answers]
                         );
                     }
                 }
 
                 await connection.commit();
-                fs.unlinkSync(req.file.path);
+                fs.unlinkSync(req.file.path);  
                 res.json({ message: 'Quiz importé avec succès.' });
-
             } catch (error) {
                 await connection.rollback();
                 console.error("Erreur lors de l'importation du quiz :", error);
@@ -466,86 +463,55 @@ const importQuiz = async (req, res) => {
 };
 
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); 
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
 
-
-
-const extractTextFromFile = async (filePath, fileType) => {
-    if (fileType === "application/pdf") {
-        const data = await pdfParse(fs.readFileSync(filePath));
-        return data.text;
-    } else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        const data = await mammoth.extractRawText({ path: filePath });
-        return data.value;
-    } else if (fileType === "text/plain") {
-        return fs.readFileSync(filePath, "utf-8");
-    }
-    throw new Error("Unsupported file type.");
-};
-const upload = multer({ storage });
-
-const createQuizByAI = async (req, res) => {
-    if (!req.teacher || !req.teacher.id) {
-        return res.status(403).json({ message: "Accès interdit." });
-    }
-
-    const teacherId = req.teacher.id;
-    const { quiz_id } = req.body;
-
-    if (!quiz_id || isNaN(quiz_id)) {
-        return res.status(400).json({ error: "Le quiz_id est requis et doit être un nombre valide." });
-    }
-
-    if (!req.file) {
-        return res.status(400).json({ error: "Aucun fichier téléversé." });
-    }
-
-    
-    const [quizRows] = await pool.query(
-        "SELECT id FROM quizzes WHERE id = ? AND teacher_id = ?",
-        [quiz_id, teacherId]
-    );
-
-    if (quizRows.length === 0) {
-        return res.status(403).json({ error: "Vous n'êtes pas autorisé à importer un quiz qui ne vous appartient pas." });
-    }
-
-
-    const filePath = req.file.path;
-    const fileType = req.file.mimetype;
-
+const ALLQuizzesbymodule= async (req, res) => {
     try {
-        
-        const courseText = await extractTextFromFile(filePath, fileType);
-        const response = await openai.chat.completions.create({
-            model: "gpt-4-turbo",
-            messages: [
-                { role: "system", content: "You are an AI that generates multiple-choice quiz questions from educational content." },
-                { role: "user", content: `Generate a multiple-choice quiz from the following text:\n${courseText}` }
-            ]
-        });
+        const teacherId = req.teacher.id;
+        const { module_name } = req.body;
+    
 
-        const aiQuiz = response.choices[0].message.content;
+        if (!module_name) {
+            return res.status(400).json({ message: "Module name is required" });
+        }
+        const quizzes = await Quiz.getQuizzesByModule(teacherId, module_name);
 
-        await pool.query(
-            "UPDATE quizzes SET questions = ? WHERE id = ? AND teacher_id = ?",
-            [aiQuiz, quiz_id, teacherId]
-        );
-
-        return res.status(201).json({ message: "Quiz updated successfully!", quiz: aiQuiz });
-
+        return res.status(200).json({ quizzes });
     } catch (error) {
-        console.error("AI Quiz Generation Error:", error);
-        return res.status(500).json({ error: "Failed to generate quiz." });
+        console.error("Error in getQuizzesByModule:", error);
+        return res.status(500).json({ message: "Failed to fetch quizzes by module." });
     }
 };
+
+const Draft_Quizzesbymodule = async (req, res) => {
+    try {
+        const teacherId = req.teacher.id; 
+        const { module_name} = req.body; 
+        
+
+        if (!teacherId ) {
+            return res.status(400).json({ message: "Missing teacherId or moduleId" });
+        }
+        const draft = await Quiz.getDraftQuizzesbymodule(teacherId, module_name);
+        return res.status(200).json({ draft });
+    } catch (error) {
+        console.error("Error in getDraftQuizzes:", error);
+        return res.status(500).json({ message: "Failed to fetch draft quizzes." });
+    }
+};
+
+
+const Past_Quizzesbymodule = async (req, res) => {
+    try {
+        const teacherId = req.teacher.id; 
+        const { module_name } = req.body; 
+        const past = await Quiz.getPastQuizzesbymodule(teacherId, module_name);
+        return res.status(200).json({ past });
+    } catch (error) {
+        console.error("Error in getPastQuizzes:", error);
+        return res.status(500).json({ message: "Failed to fetch Past quizzes ." });
+    }
+};
+
 //Imen : Review the drafted question getting each question and it's answers
 const SeeDraftQuiz = async (req ,res )=>{
     try {
@@ -566,16 +532,20 @@ const SeeDraftQuiz = async (req ,res )=>{
     }
 }
 
+
+
 export default {
     createQuiz,
     deleteQuiz,
     Quizzes_Type ,
-    ALLQuizzes,
+    ALLQuizzesbymodule,
+    Draft_Quizzesbymodule,
+    Past_Quizzesbymodule,
+    ALLQuizzes2,
     Past_Quizzes ,
     Draft_Quizzes,
     update_title ,
     update_duration ,
-    update_status ,
     update_timedby ,
     startQuizTeach ,
     randomazation ,
@@ -583,7 +553,10 @@ export default {
     submitQuizManually,
     startQuiz , 
     importQuiz ,
-    createQuizByAI,
-    extractTextFromFile ,
     SeeDraftQuiz
+    
 } ; 
+
+
+
+    
