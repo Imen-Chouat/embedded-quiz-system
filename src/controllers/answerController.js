@@ -143,6 +143,7 @@ export default {
     updateAnswerText,
     updateAnswerCorrectness,
     deleteAnswer,
-    submitAnswer
+    submitAnswer,
+ getStudentAnswerForQuestion
     
 };
