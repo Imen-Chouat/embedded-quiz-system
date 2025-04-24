@@ -44,6 +44,44 @@ class Result {
         return 0;
     }
 }
+    // Fonction pour obtenir le tableau des étudiants avec leur score dans un quiz donné
+export const getQuizParticipantsTable = async (req, res) => {
+    const { quizId } = req.params;
+
+    try {
+        // Récupérer tous les étudiants ayant participé à ce quiz
+        const [participants] = await pool.query(`
+            SELECT s.id, s.first_name, s.last_name, s.email
+            FROM students s
+            JOIN QuizParticipants qp ON qp.student_id = s.id
+            WHERE qp.quiz_id = ?
+        `, [quizId]);
+
+        if (participants.length === 0) {
+            return res.status(404).json({ message: 'Aucun étudiant n\'a participé à ce quiz.' });
+        }
+
+        // Calculer le score de chaque étudiant
+        const results = [];
+
+        for (const participant of participants) {
+            const score = await calculateScore(participant.id, quizId);
+            results.push({
+                first_name: participant.first_name,
+                last_name: participant.last_name,
+                email: participant.email,
+                score
+            });
+        }
+
+        // Répondre avec la liste des participants et leurs scores
+        return res.status(200).json({ participants: results });
+    } catch (error) {
+        console.error('Erreur lors de la récupération des participants et des scores:', error);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+    }
+};
+
 
     static async getAverageQuizGrade(quiz_id) {
         try {
