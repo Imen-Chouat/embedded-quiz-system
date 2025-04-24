@@ -3,43 +3,23 @@ import jwt from 'jsonwebtoken';
 import envConfig from '../config/envConfig.js';
 import Student from '../modules/Student.js';
 import pool from '../config/dbConfig.js';
-import Question from '../modules/Question.js';
-import Quiz from '../modules/Quiz.js';
-import Answer from '../modules/Answer.js';
+import Organization from '../modules/Organization.js';
+import authController from './authController.js';
 
 
 const registerStudent = async (req, res) => {
     try {
-      const { first_name, last_name, email, password, level_name, section_name, group_name } = req.body;
+      const { first_name, last_name, email, password} = req.body;
       
       const emailExist = await Student.searchByEmail(email);
       if (emailExist) {
         return res.status(400).send({ "message": "Email already exists." });
       }
-
-      const [level] = await pool.execute("SELECT id FROM levels WHERE level_name = ?", [level_name]);
-      if (level.length === 0) {
-        return res.status(404).send({ "message": "Level not found." });
-      }
-      const level_id = level[0].id;
-      console.log("Finding section_id for section_name:", section_name); 
-      const [section] = await pool.execute("SELECT id FROM sections WHERE section_name = ? AND level_id = ?", [section_name, level_id]);
-      if (section.length === 0) {
-        return res.status(404).send({ "message": "Section not found." });
-      }
-      const section_id = section[0].id;
-      console.log("Finding group_id for group_name:", group_name); 
-      const [group] = await pool.execute("SELECT id FROM student_groups WHERE group_name = ? AND section_id = ?", [group_name, section_id]);
-      if (group.length === 0) {
-        return res.status(404).send({ "message": "Group not found." });
-      }
-      const group_id = group[0].id;
       console.log("Hashing password..."); 
       const password_hash = await bcryptjs.hash(password, 8);
       console.log("Creating student..."); 
-      const newID = await Student.create(first_name, last_name, email, password_hash, group_id);
+      const newID = await Student.create(first_name, last_name, email, password_hash );
       const student = await Student.getById(newID);
-  
       return res.status(201).json(student);
     } catch (error) {
       console.error("Error in registerStudent:", error);
@@ -55,8 +35,15 @@ const loginStudent = async (req,res)=>{
             if(!isMatch){
                 return res.status(400).json({"message":"wrong password"});
             }
-            const token = jwt.sign({id : student.id , email : student.email},envConfig.JWT_SECRET,{expiresIn : '24h'});
-            return res.status(201).json({"message":"student loged in successfully !",token});
+            const {accessToken , refreshToken } = authController.generateTokenStudent(student);
+            await Student.updateRefreshToken(student.id,refreshToken);
+            res.cookie("refreshToken",refreshToken,{
+                httpOnly: true,
+                secure: true,
+                sameSite: "Strict",
+            });
+            
+            return res.status(201).json({"message":"student loged in successfully !",token: accessToken,refreshToken});
         }
         else{
          return res.status(400).json({"message":"Email not found"});
@@ -127,82 +114,113 @@ const modify_password = async (req,res) =>{
         return res.status(500).json({ message: "Server error", error: error.message });
     }
 }
-const modify_group = async (req,res) =>{
-        try{
-        const studentId = req.student.id;    
-        const {  new_level , new_section , new_group} = req.body ;
-        let student = await Student.getById( studentId );
-        if (!student){
-            return res.status(404).json({"message":"Wrong id"});
-        }
-        const [promo] = await pool.execute("SELECT id FROM levels WHERE level_name = ?", [new_level]);
-        if (promo.length === 0) {
-            throw new Error("NewPromo non trouvée !");
-        }
-        const level_id = promo[0].id;
-        const [section] = await pool.execute("SELECT id FROM sections WHERE section_name = ? AND level_id = ?", [new_section, level_id]);
-        if (section.length === 0) {
-            throw new Error("Section non trouvée !");
-        }
-        const section_id = section[0].id;
-        const [group] = await pool.execute("SELECT id FROM student_groups WHERE group_name = ? AND section_id = ?", [new_group, section_id]);
-        if (group.length === 0) {
-            throw new Error("Groupe non trouvé !");
-        }
-        const group_id = group[0].id;
-        const modified = await Student.update_groupid( studentId , group_id);
-        if(modified > 0) {
-            student = await Student.getById(studentId );
-            return res.status(200).json({"message" : "The group_id  modified successfully",student});
-        }
-        return res.status(400).json({"message":"Failling in modifying the group_id  !"});
-        }catch(error){
-            console.error("Error modifying student group_id  :", error);
-            return res.status(500).json({ message: "Server error", error: error.message });
-        }
-}
-//Imen : reviewing a student attempt for a specific quiz ( takes in : the quiz id and the student id , returns an object containing 2 fields : 1- message to inform about the result // 2- quizAttemts a json contaning 2 fields : 2-1 quiz will contain the quiz infos , 2-2 questionNanswer will associate for each question the student answer and if it is correct
-const reviewQuiz = async (req,res) => {
+const updateStudentGroup = async (req, res) => {
     try {
-        const {student_id,quiz_id} = req.body ;
-        const [attended] = await pool.execute(`SELECT * FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`,[quiz_id,student_id]);
-        if(!attended.length){
-            return res.status(404).json({message:"the student did not attend this quiz ."});
+        const studentId = req.student.id;
+        const { new_group } = req.body;
+
+        if (!new_group) {
+            return res.status(400).json({ message: "Please provide a new group name." });
         }
-        const questions = await Question.getQuizQuestions(quiz_id);
-        let questionNanswer = await Promise.all(
-            questions.map(async (question) => {
-                const [answer] = await pool.execute(
-                    `SELECT * FROM student_responses WHERE student_id = ? AND question_id = ? AND quiz_id = ?`,
-                    [student_id, question.id, quiz_id]
-                );
-
-                if (answer.length === 0) {
-                    return { question, answer: null }; // No answer for this question
-                }
-
-                let { answer_text, is_correct } = await Answer.getAnswerById(answer[0].id);
-                return { 
-                    question, 
-                    answer: { id: answer[0].id, answer_text, is_correct } 
-                };
-            })
+        const student = await Student.getById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found." });
+        }
+        const [existsCSV] = await pool.execute(
+            "SELECT * FROM student_group_csv WHERE email = ?",
+            [student.email]
         );
-        const quiz = await Quiz.findById(quiz_id);
-        return res.status(200).json({message:"successful fetching of the review",
-            quizAttempt: {quiz,questionNanswer}
-        });
+        if (existsCSV.length === 0) {
+            return res.status(403).json({ message: "You can't modify your group. CSV not uploaded by teacher." });
+        }
+        const [groupRows] = await pool.execute(
+            "SELECT id FROM student_groups WHERE group_name = ?",
+            [new_group]
+        );
+        if (groupRows.length === 0) {
+            return res.status(400).json({ message: "This group does not exist." });
+        }
+
+        await pool.execute(
+            "UPDATE student_group_csv SET group_id = ? WHERE email= ?",
+            [groupRows[0].id, student.email]
+        );
+
+        return res.status(200).json({ message: "Group updated successfully." });
+
     } catch (error) {
-        return res.status(500).json({message:"error fetching the quiz review"});
+        console.error("Error updating group:", error);
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
-}  
+};
+
+const deleteAccount = async (req, res) => {
+    try {
+        
+        const studentId = req.student.id;
+        console.log("Requête reçue pour suppression:", req.body);
+
+        const student = await Student.getById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: "No user with this ID!" });
+        }
+
+        await Student.delete(studentId);
+        res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: "Strict" });
+
+        return res.status(200).json({ message: "Student account deleted successfully." });
+
+    } catch (error) {
+        console.error("Error deleting account:", error);
+        return res.status(500).json({ message: "Error in deleting the account." });
+    }
+};
+
+
+        const reviewQuiz = async (req,res) => {
+            try {
+                const {student_id,quiz_id} = req.body ;
+                const [attended] = await pool.execute(`SELECT * FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`,[quiz_id,student_id]);
+                if(!attended.length){
+                    return res.status(404).json({message:"the student did not attend this quiz ."});
+                }
+                const questions = await Question.getQuizQuestions(quiz_id);
+                let questionNanswer = await Promise.all(
+                    questions.map(async (question) => {
+                        const [answer] = await pool.execute(
+                            `SELECT * FROM student_responses WHERE student_id = ? AND question_id = ? AND quiz_id = ?`,
+                            [student_id, question.id, quiz_id]
+                        );
+        
+                        if (answer.length === 0) {
+                            return { question, answer: null }; // No answer for this question
+                        }
+        
+                        let { answer_text, is_correct } = await Answer.getAnswerById(answer[0].id);
+                        return { 
+                            question, 
+                            answer: { id: answer[0].id, answer_text, is_correct } 
+                        };
+                    })
+                );
+                const quiz = await Quiz.findById(quiz_id);
+                return res.status(200).json({message:"successful fetching of the review",
+                    quizAttempt: {quiz,questionNanswer}
+                });
+            } catch (error) {
+                return res.status(500).json({message:"error fetching the quiz review"});
+            }
+        }  ;
+
+
 export default {
     registerStudent ,
     loginStudent ,
     modify_LastName , 
     modify_FirstName ,
+    deleteAccount,
     modify_password ,
-    modify_group,
+    updateStudentGroup ,
     reviewQuiz
-};
 
+};
