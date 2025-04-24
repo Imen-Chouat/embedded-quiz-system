@@ -24,7 +24,21 @@ import Answer from '../modules/answer.js';
         res.status(500).json({ error: error.message });
     }
 };
+ const getStudentAnswerForQuestion = async (req, res) => {
+    const { student_id, quiz_id, question_id } = req.params;
 
+    const result = await Answer.getStudentAnswerForQuestion({
+        student_id,
+        quiz_id,
+        question_id,
+    });
+
+    if (result.error) {
+        return res.status(404).json({ error: result.error });
+    }
+
+    res.json(result);
+};
 // Récupérer toutes les réponses d'une question
  const getAnswersByQuestionId = async (req, res) => {
     try {
