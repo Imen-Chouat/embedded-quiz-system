@@ -1,4 +1,4 @@
-import mysql from 'mysql2';
+   import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 
 class Quiz {
@@ -178,20 +178,42 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
     }
     // te3 submission 
     static async startQuizAttempt(studentId, quizId) {
-        try {
-            const [result] = await pool.execute(
-                `INSERT INTO quiz_attempts (student_id, quiz_id, start_time, status)
-                 VALUES (?, ?, NOW(), 'inprogress')`,
-                [studentId, quizId]
-            );
-            return result.insertId;
-        } catch (error) {
-            console.error("Error starting quiz attempt:", error);
-            throw error;
+        const [quizData] = await pool.execute(
+            `SELECT created_at, duration FROM quizzes WHERE id = ?`,
+            [quizId]
+        );
+    
+        if (quizData.length === 0) {
+            throw new Error("Quiz not found.");
         }
+    
+        const { created_at, duration } = quizData[0];
+        const [hours, minutes, seconds] = duration.split(":").map(Number);
+        const durationMs = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
+        const endTime = new Date(new Date(created_at).getTime() + durationMs);
+        const now = new Date();
+    
+        if (now > endTime) {
+            throw new Error("Quiz time is over.");
+        }
+
+        const [existing] = await pool.execute(
+            `SELECT id FROM quiz_attempts WHERE student_id = ? AND quiz_id = ?`,
+            [studentId, quizId]
+        );
+    
+        if (existing.length > 0) {
+            return existing[0].id; 
+        }
+        const [result] = await pool.execute(
+            `INSERT INTO quiz_attempts (student_id, quiz_id, start_time, status)
+             VALUES (?, ?, NOW(), 'in_progress')`,
+            [studentId, quizId]
+        );
+    
+        return result.insertId;
     }
-    
-    
+
     
     static async submitQuizManually(studentId, quizId, responses) {
         try {
@@ -234,7 +256,7 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
     static async autoSubmitQuiz(studentId, quizId) {
         try {
             const [attempt] = await pool.execute(
-                `SELECT qa.start_time, q.duration, qa.status
+                `SELECT q.created_at, q.duration, qa.status
                  FROM quiz_attempts qa
                  JOIN quizzes q ON qa.quiz_id = q.id
                  WHERE qa.student_id = ? AND qa.quiz_id = ?`,
@@ -245,17 +267,17 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
                 throw new Error("No active quiz attempt found.");
             }
     
-            const { start_time, duration, status } = attempt[0];
-    
+            const { created_at, duration, status } = attempt[0];
             if (status === "submitted") {
                 console.log(`Quiz ${quizId} was already submitted manually.`);
                 return "already_submitted";
             }
-    
-            const endTime = new Date(start_time.getTime() + duration * 60000);
+
+            const [hours, minutes, seconds] = duration.split(":").map(Number);
+            const durationMs = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
+
+            const endTime = new Date(new Date(created_at.getTime() + durationMs));
             const currentTime = new Date();
-    
-          
             if (currentTime >= endTime) {
                 await this.finalizeQuizSubmission(studentId, quizId);
                 console.log(`Quiz ${quizId} automatically submitted for student ${studentId}.`);
