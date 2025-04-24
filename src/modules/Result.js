@@ -80,7 +80,7 @@ export const getQuizParticipantsTable = async (req, res) => {
         console.error('Erreur lors de la récupération des participants et des scores:', error);
         return res.status(500).json({ message: 'Erreur interne du serveur' });
     }
-};
+}
 
 
     static async getAverageQuizGrade(quiz_id) {
