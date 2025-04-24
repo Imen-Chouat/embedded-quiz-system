@@ -107,9 +107,10 @@ async function createAnswersTable() {
 async function createLevelsTable() {
     try {
         const [results] = await pool.query(`
-            CREATE TABLE IF NOT EXISTS  levels (
+            CREATE TABLE IF NOT EXISTS levels 
+            (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                level_name VARCHAR(50) NOT NULL
+                level_name VARCHAR(50) NOT NULL UNIQUE
             );
         `);
     } catch (error) {
@@ -124,6 +125,7 @@ async function createSectionsTable() {
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 level_id INT,
                 section_name VARCHAR(10),
+                UNIQUE (level_id, section_name),
                 FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE SET NULL
             );
         `);
@@ -140,6 +142,7 @@ async function createStudentGroupsTable() {
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 section_id INT,
                 group_name VARCHAR(10),
+                UNIQUE (section_id, group_name),
                 FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL
             );
         `);
@@ -267,12 +270,12 @@ async function createQuizNotificationsTable() {
   }
 async function createStudentGroupCsvTable() {
     try {
-        const [result] = await pool.query(`
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS student_group_csv (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                email VARCHAR(255) NOT NULL UNIQUE,
+                email VARCHAR(255) NOT NULL,
                 group_id INT NOT NULL,
-                FOREIGN KEY (email) REFERENCES students(email) ON DELETE CASCADE,
+                UNIQUE (email, group_id),
                 FOREIGN KEY (group_id) REFERENCES student_groups(id) ON DELETE CASCADE
             );
         `);
