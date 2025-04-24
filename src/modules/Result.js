@@ -16,6 +16,34 @@ class Result {
             throw new Error('Erreur lors de la récupération de la participation au quiz.');
         }
     }
+    async function calculateScore(studentId, quizId) {
+    try {
+        // Récupérer toutes les réponses de l'étudiant pour ce quiz
+        const [studentResponses] = await pool.query(`
+            SELECT sr.question_id, sr.answer_id, a.is_correct
+            FROM student_responses sr
+            JOIN answers a ON sr.answer_id = a.id
+            WHERE sr.student_id = ? AND sr.quiz_id = ?
+        `, [studentId, quizId]);
+
+        if (studentResponses.length === 0) {
+            return 0; // Si l'étudiant n'a pas encore répondu aux questions du quiz
+        }
+
+        // Calculer le score de l'étudiant
+        let score = 0;
+        studentResponses.forEach(response => {
+            if (response.is_correct) {
+                score += 1; // Ajout d'un point pour chaque bonne réponse
+            }
+        });
+
+        return score; // Retourner le score final
+    } catch (error) {
+        console.error('Error calculating score:', error);
+        return 0;
+    }
+}
 
     static async getAverageQuizGrade(quiz_id) {
         try {
