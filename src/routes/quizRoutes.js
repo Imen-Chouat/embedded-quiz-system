@@ -4,43 +4,52 @@ import authenticateStudent, { authTeacherMiddleware } from '../middlewares/authM
 import multer from 'multer';
 import fs from 'fs';
 
-
-
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); 
+        const uploadDir = 'uploads/';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
 
-const upload = multer({ storage }); 
+const upload = multer({ storage });
+
+
+
 
 
 const router = express.Router();
 
 
 
+router.post("/create", authTeacherMiddleware, quizController.createQuiz);
 
 router.delete('/:id', authTeacherMiddleware, quizController.deleteQuiz);
 router.patch('/:id/title', authTeacherMiddleware, quizController.update_title);
 router.patch('/:id/duration', authTeacherMiddleware, quizController.update_duration);
-router.patch('/:id/status', authTeacherMiddleware, quizController.update_status);
+
 router.patch('/:id/timedby', authTeacherMiddleware, quizController.update_timedby);
-router.get('/Allmodule', authTeacherMiddleware, quizController.ALLQuizzes);
-router.get('/draftmodule', authTeacherMiddleware, quizController.Draft_Quizzes);
-router.get('/Pastmodule', authTeacherMiddleware, quizController.Past_Quizzes);
+router.post('/ALLQuizzesbymodule', authTeacherMiddleware, quizController.ALLQuizzesbymodule );
+router.post('/Draft_Quizzesbymodule', authTeacherMiddleware, quizController.Draft_Quizzesbymodule);
+router.post('/Past_Quizzesbymodule', authTeacherMiddleware, quizController.Past_Quizzesbymodule);
+router.get('/AllQuizzes2', authTeacherMiddleware, quizController.ALLQuizzes2);
+router.get('/draftQuizzes', authTeacherMiddleware, quizController.Draft_Quizzes);
+router.get('/PastQuizzes', authTeacherMiddleware, quizController.Past_Quizzes);
 router.post("/start",authenticateStudent , quizController.startQuiz);
 router.post("/submit", authenticateStudent, quizController.submitQuizManually);
 router.post("/auto-submit", authenticateStudent, quizController.autoSubmitQuiz);
 router.post("/start-quiz", authTeacherMiddleware, quizController.startQuizTeach);
-router.post("/importQuiz",authTeacherMiddleware , upload.single('file'), quizController.importQuiz);
-router.get("/randomize/:quizId", quizController.randomazation);
-router.post("/createQuizByAI",authTeacherMiddleware , upload.single('file'), quizController.createQuizByAI);
-router.get("/reviewDraftQuiz",authTeacherMiddleware,quizController.SeeDraftQuiz);
-export default router;
+router.post("/importQuiz", authTeacherMiddleware, upload.single('file'), quizController.importQuiz);
 
+router.get("/randomize/:quizId", quizController.randomazation);
+
+
+
+export default router;
 
 
