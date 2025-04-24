@@ -9,6 +9,24 @@ import Answer from '../modules/Answer.js';
         res.status(500).json({ error: error.message });
     }
 };
+const getScore = async (req, res) => {
+    const { studentId, quizId } = req.params;
+
+    try {
+        // Calculer le score de l'étudiant pour ce quiz
+        const score = await calculateScore(studentId, quizId);
+
+        if (score === 0) {
+            return res.status(404).json({ message: 'Aucune réponse trouvée pour cet étudiant dans ce quiz.' });
+        }
+
+        // Répondre avec le score
+        return res.status(200).json({ score });
+    } catch (error) {
+        console.error('Erreur lors du calcul du score:', error);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+    }
+};
 
  const getAverageQuizGrade = async (req, res) => {
     try {
@@ -47,6 +65,7 @@ export default {
     getQuizAttendance,
     getAverageQuizGrade,
     getQuizSuccessRate,
-    questionChoicePercentage 
+    questionChoicePercentage ,
+    getScore
 };
   
