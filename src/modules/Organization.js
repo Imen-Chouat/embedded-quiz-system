@@ -77,34 +77,67 @@ class Organization {
             throw new Error(`Error updating the level name: ${error.message}`); 
         }
     }
+        static async getGroupId(group_name){
+        try {
+            const [rows] = await pool.query(`SELECT id FROM student_groups WHERE group_name = ?`,[group_name]);
+            return rows.length == 0 ? rows[0].id : -1 ;
+        } catch (error) {
+            throw new Error(`Error getting the group id: ${error.message}`); 
+        }
+    }
     static async processStudentData(records) {
         for (const row of records) {
-            const { level, section, group, student_email } = row;
+            const { level, section, group, email } = row;
     
-            if (!level || !section || !group || !student_email) continue;
+            if (!level || !section || !group || !email) continue;
     
             try {
+                console.log('/********************/');
+                console.log(row);
                 // Insert level if not exists and get its ID
-                await pool.query(`INSERT IGNORE INTO levels (level_name) VALUES (?)`, [level]);
-                const [levelIdRow] = await pool.query(`SELECT id FROM levels WHERE level_name = ?`, [level]);
-                const levelId = levelIdRow[0]?.id;
-    
+                let [levels] = await pool.query(`SELECT * FROM levels WHERE level_name = ?`,[level]);
+                let levelId ;
+                
+                if(levels.length == 0 ){
+                    let [insertLevel] = await pool.query(`INSERT INTO levels (level_name) VALUES (?)`, [level]);
+                    levelId = insertLevel.insertId;
+                }else {
+                    levelId = levels[0].id ;
+                }
+                console.log(levelId ? levelId : "no level id");
                 // Insert section if not exists and get its ID
-                await pool.query(`INSERT IGNORE INTO sections (level_id,section_name) VALUES (?, ?)`, [levelId,section]);
                 const [sectionIdRow] = await pool.query(`SELECT id FROM sections WHERE section_name = ? AND level_id = ?`,
                     [section, levelId]
                 );
-                const sectionId = sectionIdRow[0]?.id;
+                let sectionId;
+                if(sectionIdRow.length == 0 ){
+                    let [insertSection] = await pool.query(`INSERT INTO sections (level_id,section_name) VALUES (?, ?)`, [levelId,section]);
+                    sectionId = insertSection.insertId;
+                }else{
+                    sectionId = sectionIdRow[0].id ;
+                }
     
                 // Insert student group if not exists
-                await pool.query(`INSERT INTO student_group (section_id,group_name) VALUES ( ?, ?)`,[sectionId,group]);
-    
+                let [groups] = await pool.query(`SELECT * FROM student_groups WHERE section_id = ? AND group_name = ?`,[sectionId,group]);
+                let group_id;
+                if(groups.length == 0){
+                    const [insertGroup]=await pool.query(`INSERT INTO student_groups (section_id,group_name) VALUES ( ?, ?)`,[sectionId,group]);
+                    group_id = insertGroup.insertId ;
+                }else{
+                    group_id = groups[0]?.id;
+                }
+                  
+                  console.log('the id:',group_id);
+                //Update the student group table (that assign for each student his group)
+                const [count] = await pool.query(`INSERT INTO student_group_csv (email,group_id) VALUES (?,?)`,[email,group_id]);
+                console.log(count.affectedRows);
             } catch (error) {
                 console.error('Error processing record:', error);
                 throw error;
             }
         }
     }
+    
 
 }
 export default Organization ;
