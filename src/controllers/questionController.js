@@ -10,16 +10,12 @@ import Quiz from '../modules/Quiz.js';
         const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_seconds, grade });
      //plz add this one in order to handle the quiz duration 
     
-/*
+
        const quiz = await Quiz.findById(quiz_id);
         if (quiz && quiz.timed_by === 'question') {
             const totalDuration = await Quiz.calculateTotalDuration(quiz_id);
             await Quiz.updateQuizDuration(quiz_id, totalDuration);
         }
-
-    */
-
-     
         res.status(201).json(newQuestion);
     } catch (error) {
         res.status(500).json({ error: error.message });
