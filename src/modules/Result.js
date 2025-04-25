@@ -115,6 +115,41 @@ class Result {
             throw error;
         }
     }
+// Get all quizzes assigned to the student's group
+static async getUpcomingQuizzes(studentId) {
+    const [quizzes] = await pool.execute(`
+        SELECT q.*
+        FROM quizzes q
+        JOIN groups g ON q.group_id = g.id
+        JOIN students s ON s.group_id = g.id
+        WHERE s.id = ? AND q.date > NOW()
+    `, [studentId]);
+    return quizzes;
+}
+
+static async getCompletedQuizzes(studentId) {
+    const [quizzes] = await pool.execute(`
+        SELECT q.*
+        FROM quizzes q
+        JOIN QuizParticipants qp ON q.id = qp.quiz_id
+        WHERE qp.student_id = ?
+    `, [studentId]);
+    return quizzes;
+}
+
+static async getMissedQuizzes(studentId) {
+    const [quizzes] = await pool.execute(`
+        SELECT q.*
+        FROM quizzes q
+        JOIN groups g ON q.group_id = g.id
+        JOIN students s ON s.group_id = g.id
+        WHERE s.id = ? AND q.date < NOW()
+        AND q.id NOT IN (
+            SELECT quiz_id FROM QuizParticipants WHERE student_id = ?
+        )
+    `, [studentId, studentId]);
+    return quizzes;
+}
 
 
     static async getAverageQuizGrade(quiz_id) {
