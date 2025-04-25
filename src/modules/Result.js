@@ -37,7 +37,7 @@ class Result {
         }
     }
     
-    async function calculateScore(studentId, quizId) {
+    static async  calculateScore(studentId, quizId) {
     try {
         // Récupérer toutes les réponses de l'étudiant pour ce quiz
         const [studentResponses] = await pool.query(`
