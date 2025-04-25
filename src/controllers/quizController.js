@@ -1,3 +1,4 @@
+
 import jwt from "jsonwebtoken";
 import envConfig from "../config/envConfig.js";
 import Quiz from "../modules/Quiz.js";
@@ -275,86 +276,84 @@ const autoSubmitQuiz = async (req, res) => {
         return res.status(500).json({ message: "Failed to schedule automatic submission." });
     }
 };
+
 const addquizparticipants = async (req, res) => {
-   
-        try {
-            const teacherId = req.teacher.id; 
-            const { quizId, levelName, sectionNames, groupNames, studentEmails } = req.body;
-    
-            const [quiz] = await pool.query(`SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`, [quizId, teacherId]);
-            if (quiz.length === 0) {
-                return res.status(404).json({ message: "Quiz not found or you don't have permission." });
-            }
-            if (quiz[0].status !== "Draft") {
-                return res.status(400).json({ message: "Quiz is not in draft mode." });
-            }
-    
-            let studentIds = [];
-    
-         
-            if (levelName && !sectionNames && !groupNames && !studentEmails) {
-                const [students] = await pool.query(
-                    `SELECT s.id FROM students s 
-                     JOIN student_groups g ON s.group_id = g.id 
-                     JOIN sections sec ON g.section_id = sec.id
-                     JOIN levels l ON sec.level_id = l.id
-                     WHERE l.level_name = ?`,
-                    [levelName]
-                );
-                studentIds = students.map(s => s.id);
-            }
-    
-          
-            else if (levelName && sectionNames && !groupNames) {
-                const [students] = await pool.query(
-                    `SELECT s.id FROM students s 
-                     JOIN student_groups g ON s.group_id = g.id 
-                     JOIN sections sec ON g.section_id = sec.id
-                     JOIN levels l ON sec.level_id = l.id
-                     WHERE l.level_name = ? AND sec.section_name IN (?)`,
-                    [levelName, sectionNames]
-                );
-                studentIds = students.map(s => s.id);
-            }
-    
-           
-            else if (levelName && sectionNames && groupNames && studentEmails.length == 0) {
-                const [students] = await pool.query(
-                    `SELECT s.id FROM students s 
+    try {
+        const teacherId = req.teacher.id;
+        const { quizId, levelName, sectionNames, groupNames, studentEmails } = req.body;
 
-                     JOIN student_groups g ON s.group_id = g.id 
-                     JOIN sections sec ON g.section_id = sec.id
-                     JOIN levels l ON sec.level_id = l.id
-                     WHERE l.level_name = ? AND sec.section_name IN (?) AND g.group_name IN (?)`,
-                    [levelName, sectionNames, groupNames]
-                );
-                studentIds = students.map(s => s.id);
-            }
-    
-
-            if (studentEmails && studentEmails.length > 0) {
-                const [students] = await pool.query(
-                    `SELECT id FROM students WHERE email IN (?)`, [studentEmails]
-                );
-                studentIds.push(...students.map(s => s.id));
-            }
-    
-            if (studentIds.length === 0) {
-                return res.status(400).json({ message: "No students found for the selected criteria." });
-            }
-    
-      
-            const values = studentIds.map(id => [quizId, id]);
-            await pool.query(`INSERT INTO QuizParticipants (quiz_id, student_id) VALUES ?`, [values]);
-            return res.status(200).json({ message: "Quiz started successfully.", studentIds });
-    
-        } catch (error) {
-            console.error("Error in startQuiz:", error);
-            return res.status(500).json({ message: "Failed to start quiz." });
+        const [quiz] = await pool.query(
+            `SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`,
+            [quizId, teacherId]
+        );
+        if (quiz.length === 0) {
+            return res.status(404).json({ message: "Quiz not found or you don't have permission." });
         }
-    };
-    
-    
+
+        if (quiz[0].status !== "Draft") {
+            return res.status(400).json({ message: "Quiz is not in draft mode." });
+        }
+
+        let studentIds = new Set();
+        if (levelName && !sectionNames && !groupNames && (!studentEmails || studentEmails.length === 0)) {
+            const [students] = await pool.query(`
+                SELECT s.id FROM students s
+                JOIN student_group_csv sgc ON s.email = sgc.email
+                JOIN student_groups g ON sgc.group_id = g.id
+                JOIN sections sec ON g.section_id = sec.id
+                JOIN levels l ON sec.level_id = l.id
+                WHERE l.level_name = ?`,
+                [levelName]
+            );
+            students.forEach(s => studentIds.add(s.id));
+        }
+        else if (levelName && sectionNames && (!groupNames || groupNames.length === 0)) {
+            const [students] = await pool.query(`
+                SELECT s.id FROM students s
+                JOIN student_group_csv sgc ON s.email = sgc.email
+                JOIN student_groups g ON sgc.group_id = g.id
+                JOIN sections sec ON g.section_id = sec.id
+                JOIN levels l ON sec.level_id = l.id
+                WHERE l.level_name = ? AND sec.section_name IN (?)`,
+                [levelName, sectionNames]
+            );
+            students.forEach(s => studentIds.add(s.id));
+        }
+        else if (levelName && sectionNames && groupNames && groupNames.length > 0) {
+            const [students] = await pool.query(`
+                SELECT s.id FROM students s
+                JOIN student_group_csv sgc ON s.email = sgc.email
+                JOIN student_groups g ON sgc.group_id = g.id
+                JOIN sections sec ON g.section_id = sec.id
+                JOIN levels l ON sec.level_id = l.id
+                WHERE l.level_name = ? AND sec.section_name IN (?) AND g.group_name IN (?)`,
+                [levelName, sectionNames, groupNames]
+            );
+            students.forEach(s => studentIds.add(s.id));
+        }
+
+        if (studentEmails && studentEmails.length > 0) {
+            const [students] = await pool.query(
+                `SELECT id FROM students WHERE email IN (?)`,
+                [studentEmails]
+            );
+            students.forEach(s => studentIds.add(s.id));
+        }
+
+        if (studentIds.size === 0) {
+            return res.status(400).json({ message: "No students found for the selected criteria." });
+        }
+
+        const values = [...studentIds].map(id => [quizId, id]);
+        await pool.query(`INSERT INTO QuizParticipants (quiz_id, student_id) VALUES ?`, [values]);
+
+        return res.status(200).json({ message: "Quiz started successfully.", studentIds: [...studentIds] });
+
+    } catch (error) {
+        console.error("Error in addquizparticipants:", error);
+        return res.status(500).json({ message: "Failed to start quiz." });
+    }
+};
 
 
 
