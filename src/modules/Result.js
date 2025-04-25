@@ -65,7 +65,7 @@ class Result {
         try {
             // Récupérer les étudiants ayant participé au quiz
             const [participants] = await pool.query(`
-                SELECT s.id, s.first_name, s.last_name, s.email
+                SELECT s.id, s.first_name, s.last_name
                 FROM students s
                 JOIN QuizParticipants qp ON qp.student_id = s.id
                 WHERE qp.quiz_id = ?
@@ -83,7 +83,7 @@ class Result {
                 results.push({
                     first_name: student.first_name,
                     last_name: student.last_name,
-                    email: student.email,
+                    
                     score
                 });
             }
