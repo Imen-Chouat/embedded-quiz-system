@@ -9,6 +9,20 @@ import Answer from '../modules/Answer.js';
         res.status(500).json({ error: error.message });
     }
 };
+
+
+export const getCompletedQuizzesByStudent = async (req, res) => {
+    const studentId = req.params.studentId;
+
+    try {
+        const quizzes = await Student.getCompletedQuizzes(studentId);
+        res.json({ quizzes });
+    } catch (error) {
+        console.error("Controller error:", error.message);
+        res.status(500).json({ error: "Failed to retrieve quizzes" });
+    }
+};
+
 const getScore = async (req, res) => {
     const { studentId, quizId } = req.params;
 
