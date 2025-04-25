@@ -8,6 +8,7 @@ router.get('/quizAverageGrade/:quiz_id', resultControllers.getAverageQuizGrade);
 router.get('/quizSuccessRate/:quiz_id', resultControllers.getQuizSuccessRate);
 router.get('/quiz/:quizId/student/:studentId/score', resultControllers.getScore);
 router.get('/quiz/:quizId/participants', resultControllers.getQuizParticipantsTable);
+router.get('/quiz/:quizId/participants', resultControllers.getQuizParticipantsTable);
 
 
 export default router;
