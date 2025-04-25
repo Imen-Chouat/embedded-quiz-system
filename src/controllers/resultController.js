@@ -18,6 +18,25 @@ const getStudentModules = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+export const getStudentUpcomingQuizzes = async (req, res) => {
+    try {
+        const quizzes = await Student.getUpcomingQuizzes(req.params.studentId);
+        res.json({ upcoming_quizzes: quizzes });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+
+export const getStudentMissedQuizzes = async (req, res) => {
+    try {
+        const quizzes = await Student.getMissedQuizzes(req.params.studentId);
+        res.json({ missed_quizzes: quizzes });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
 
 
@@ -122,6 +141,9 @@ export default {
     getScore,
     getQuizParticipantsTable,
     getStudentModules,
-    getCompletedQuizzesByStudent
+    getCompletedQuizzesByStudent,
+    getStudentUpcomingQuizzes,
+    getStudentMissedQuizzes
+    
 };
   
