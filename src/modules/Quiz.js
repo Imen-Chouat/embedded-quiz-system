@@ -1,4 +1,4 @@
-   import mysql from 'mysql2';
+  import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 
 class Quiz {
@@ -207,7 +207,7 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
         }
         const [result] = await pool.execute(
             `INSERT INTO quiz_attempts (student_id, quiz_id, start_time, status)
-             VALUES (?, ?, NOW(), 'in_progress')`,
+             VALUES (?, ?, NOW(), 'inprogress')`,
             [studentId, quizId]
         );
     
@@ -302,18 +302,22 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
                 `SELECT duration_minutes FROM questions WHERE quiz_id = ?`,
                 [quizId]
             );
-    
-            const totalDuration = questions.reduce(
+
+            const totalSeconds = questions.reduce(
                 (total, question) => total + question.duration_minutes,
                 0
             );
+            const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
     
-            return totalDuration;
+            return `${hours}:${minutes}:${seconds}`;
         } catch (error) {
             console.error("Error calculating total duration:", error);
             throw error;
         }
     }
+    
     
     static async updateQuizDuration(quizId, totalDuration) {
         try {
