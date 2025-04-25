@@ -44,6 +44,22 @@ class Result {
         return 0;
     }
 }
+    static async getCompletedQuizzes(studentId) {
+    try {
+        const [rows] = await pool.execute(
+            `SELECT q.*
+             FROM quiz_participants qp
+             JOIN quizzes q ON qp.quiz_id = q.id
+             WHERE qp.student_id = ?`,
+            [studentId]
+        );
+        return rows;
+    } catch (error) {
+        console.error("Error fetching completed quizzes for student:", error.message);
+        throw new Error("Unable to retrieve quizzes completed by student");
+    }
+}
+
     // Fonction pour obtenir le tableau des étudiants avec leur score dans un quiz donné
 export const getQuizParticipantsTable = async (req, res) => {
     const { quizId } = req.params;
