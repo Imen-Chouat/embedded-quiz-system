@@ -40,15 +40,12 @@ export const getStudentMissedQuizzes = async (req, res) => {
 
 
 
-export const getCompletedQuizzesByStudent = async (req, res) => {
-    const studentId = req.params.studentId;
-
+export const getStudentCompletedQuizzes = async (req, res) => {
     try {
-        const quizzes = await Student.getCompletedQuizzes(studentId);
-        res.json({ quizzes });
+        const quizzes = await Student.getCompletedQuizzes(req.params.studentId);
+        res.json({ completed_quizzes: quizzes });
     } catch (error) {
-        console.error("Controller error:", error.message);
-        res.status(500).json({ error: "Failed to retrieve quizzes" });
+        res.status(500).json({ error: error.message });
     }
 };
 
