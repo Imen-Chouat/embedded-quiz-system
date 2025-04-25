@@ -211,7 +211,35 @@ const deleteAccount = async (req, res) => {
                 return res.status(500).json({message:"error fetching the quiz review"});
             }
         }  ;
+const getstudentbygroup = async (req, res) => {
+   
+  try {
+    const { group_name } = req.body;
+    const [group] = await pool.query(`
+      SELECT id
+      FROM student_groups
+      WHERE group_name = ?
+    `, [group_name]);
 
+    if (group.length === 0) {
+      return res.status(404).json({ message: 'Group not found.' });
+    }
+
+    const groupId = group[0].id;
+    const [students] = await pool.query(`
+      SELECT  s.email
+      FROM student_group_csv s
+      WHERE s.group_id = ?
+    `, [groupId]);
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: 'No students found in this group.' });
+    }
+    res.json(students);
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    res.status(500).json({ message: 'Error fetching students.' });
+  }} ;
 
 export default {
     registerStudent ,
@@ -221,6 +249,7 @@ export default {
     deleteAccount,
     modify_password ,
     updateStudentGroup ,
-    reviewQuiz
+    reviewQuiz ,
+    getstudentbygroup 
 
 };
