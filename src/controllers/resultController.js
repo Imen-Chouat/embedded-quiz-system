@@ -138,7 +138,7 @@ export default {
     getScore,
     getQuizParticipantsTable,
     getStudentModules,
-    getCompletedQuizzesByStudent,
+    getStudentCompletedQuizzes,
     getStudentUpcomingQuizzes,
     getStudentMissedQuizzes
     
