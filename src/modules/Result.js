@@ -16,6 +16,27 @@ class Result {
             throw new Error('Erreur lors de la récupération de la participation au quiz.');
         }
     }
+
+    static async getStudentModules(studentId) {
+        try {
+            const [modules] = await pool.execute(`
+                SELECT m.id, m.name, m.description
+                FROM students s
+                JOIN student_groups g ON s.group_id = g.id
+                JOIN sections sec ON g.section_id = sec.id
+                JOIN levels l ON sec.level_id = l.id
+                JOIN level_module lm ON l.id = lm.level_id
+                JOIN modules m ON lm.module_id = m.id
+                WHERE s.id = ?
+            `, [studentId]);
+
+            return modules;
+        } catch (error) {
+            console.error('Error fetching student modules:', error.message);
+            throw new Error('Failed to retrieve student modules');
+        }
+    }
+    
     async function calculateScore(studentId, quizId) {
     try {
         // Récupérer toutes les réponses de l'étudiant pour ce quiz
