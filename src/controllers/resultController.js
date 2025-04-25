@@ -46,26 +46,20 @@ const getQuizParticipantsTable = async (req, res) => {
 
     try {
         // Récupérer tous les étudiants ayant participé à ce quiz
-        const [participants] = await pool.query(`
-            SELECT s.id, s.first_name, s.last_name, s.email
-            FROM students s
-            JOIN QuizParticipants qp ON qp.student_id = s.id
-            WHERE qp.quiz_id = ?
-        `, [quizId]);
+        const participants = await Result.getQuizParticipants(quizId); // Utiliser le modèle approprié pour récupérer les participants
 
         if (participants.length === 0) {
             return res.status(404).json({ message: 'Aucun étudiant n\'a participé à ce quiz.' });
         }
 
-        // Calculer le score de chaque étudiant
+        // Calculer le score de chaque participant
         const results = [];
-
         for (const participant of participants) {
             const score = await calculateScore(participant.id, quizId);
             results.push({
                 first_name: participant.first_name,
                 last_name: participant.last_name,
-                email: participant.email,
+ 
                 score
             });
         }
@@ -77,7 +71,6 @@ const getQuizParticipantsTable = async (req, res) => {
         return res.status(500).json({ message: 'Erreur interne du serveur' });
     }
 };
-
  const getAverageQuizGrade = async (req, res) => {
     try {
         const { quiz_id } = req.params;
