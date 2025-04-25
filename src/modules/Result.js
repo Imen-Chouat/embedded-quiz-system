@@ -61,7 +61,7 @@ class Result {
 }
 
     // Fonction pour obtenir le tableau des étudiants avec leur score dans un quiz donné
- static async getQuizParticipants(quizId) {
+ static async getQuizParticipantsTable(quizId) {
         try {
             // Récupérer les étudiants ayant participé au quiz
             const [participants] = await pool.query(`
