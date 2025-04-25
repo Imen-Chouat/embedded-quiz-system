@@ -11,6 +11,9 @@ router.get('/quiz/:quizId/participants', resultControllers.getQuizParticipantsTa
 router.get('/quiz/:quizId/participants', resultControllers.getQuizParticipantsTable);
 router.get('/students/:studentId/quizzesCompleted', resultControllers.getCompletedQuizzesByStudent);
 router.get('/:studentId/modules', resultControllers.getStudentModules);
+router.get('/:studentId/upcoming',  resultControllers.getStudentUpcomingQuizzes);
+router.get('/:studentId/missed', resultControllers.getStudentMissedQuizzes);
+
 
 
 export default router;
