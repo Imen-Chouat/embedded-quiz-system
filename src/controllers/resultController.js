@@ -9,6 +9,16 @@ import Answer from '../modules/Answer.js';
         res.status(500).json({ error: error.message });
     }
 };
+const getStudentModules = async (req, res) => {
+    const { studentId } = req.params;
+    try {
+        const modules = await Student.getStudentModules(studentId);
+        res.status(200).json({ studentId, modules });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 
 export const getCompletedQuizzesByStudent = async (req, res) => {
@@ -110,6 +120,8 @@ export default {
     getQuizSuccessRate,
     questionChoicePercentage ,
     getScore,
- getQuizParticipantsTable
+    getQuizParticipantsTable,
+    getStudentModules,
+    getCompletedQuizzesByStudent
 };
   
