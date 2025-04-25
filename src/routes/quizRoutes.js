@@ -43,7 +43,7 @@ router.get('/PastQuizzes', authTeacherMiddleware, quizController.Past_Quizzes);
 router.post("/start_student",authenticateStudent , quizController.startQuizstudent);
 router.post("/submit", authenticateStudent, quizController.submitQuizManually);
 router.post("/auto-submit", authenticateStudent, quizController.autoSubmitQuiz);
-router.post("/addquizparticipants ", authTeacherMiddleware, quizController. addquizparticipants);
+router.post("/addquizparticipants", authTeacherMiddleware, quizController.addquizparticipants);
 router.post("/importQuiz", authTeacherMiddleware, upload.single('file'), quizController.importQuiz);
 router.post("/start_teach",authenticateStudent , quizController.startQuizbyteach);
 
@@ -52,5 +52,8 @@ router.get("/randomize/:quizId", quizController.randomazation);
 
 
 export default router;
+
+
+
 
 
