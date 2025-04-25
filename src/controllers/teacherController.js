@@ -241,7 +241,59 @@ const deleteAccount = async (req,res) => {
     } catch (error) {
         return res.status(500).json({message:"Error in deleting the account ."});
     }
-}
+};
+const getTeacherClasses = async (req, res) => {
+    try {
+      const teacherId = req.teacher.id;
+  
+      const [levels] = await pool.query(`
+        SELECT DISTINCT lv.id AS level_id, lv.level_name
+        FROM teachers t
+        JOIN teach_module tm ON t.id = tm.teacher_id
+        JOIN level_module lm ON tm.module_id = lm.module_id
+        JOIN levels lv ON lm.level_id = lv.id
+        WHERE t.id = ?
+      `, [teacherId]);
+  
+      const levelsCleaned = [];
+  
+      for (const level of levels) {
+        const [sections] = await pool.query(`
+          SELECT s.id AS section_id, s.section_name
+          FROM sections s
+          WHERE s.level_id = ?
+        `, [level.level_id]);
+  
+        const sectionsCleaned = [];
+  
+        for (const section of sections) {
+          const [groups] = await pool.query(`
+            SELECT g.id AS group_id, g.group_name
+            FROM student_groups g
+            WHERE g.section_id = ?
+          `, [section.section_id]);
+  
+          const cleanedGroups = groups.map(g => ({ group_name: g.group_name }));
+  
+          sectionsCleaned.push({
+            section_name: section.section_name,
+            groups: cleanedGroups
+          });
+        }
+        levelsCleaned.push({
+          level_name: level.level_name,
+          sections: sectionsCleaned
+        });
+      }
+      res.status(200).json({ levels: levelsCleaned });
+  
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  
+
 
 export default {
     registerTeacher ,
@@ -254,5 +306,8 @@ export default {
     updateModuleLevel,
     updateModuleName,
     uploadStudentFile,
-    deleteAccount
+    deleteAccount ,
+    getTeacherClasses 
 };
+
+
