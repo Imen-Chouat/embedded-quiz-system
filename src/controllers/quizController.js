@@ -530,7 +530,24 @@ const startQuizbyteach = async (req, res) => {
     }
 };
 
-
+const SeeDraftQuiz = async (req ,res )=>{
+    try {
+        const {quiz_id} = req.body ;
+        const quiz = await Quiz.findById(quiz_id);
+        let questions = await Question.getQuizQuestions(quiz_id);
+        let questionNanswers = await Promise.all(
+            questions.map(async (question) => {
+                let answers = await Answer.getAnswersByQuestionId(question.id);
+                return { question, answers };
+            })
+        );
+        return res.status(200).json({message:'successfully returned the draft quiz info',draft: {
+            quiz, questionNanswers
+        }});
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
+    }
+}
 
 
 export default {
@@ -552,6 +569,6 @@ export default {
     submitQuizManually,
     startQuizstudent , 
     importQuiz ,
-    startQuizbyteach
-    
+    startQuizbyteach,
+    SeeDraftQuiz
 } ; 
