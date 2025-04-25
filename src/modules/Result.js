@@ -127,15 +127,7 @@ static async getUpcomingQuizzes(studentId) {
     return quizzes;
 }
 
-static async getCompletedQuizzes(studentId) {
-    const [quizzes] = await pool.execute(`
-        SELECT q.*
-        FROM quizzes q
-        JOIN QuizParticipants qp ON q.id = qp.quiz_id
-        WHERE qp.student_id = ?
-    `, [studentId]);
-    return quizzes;
-}
+
 
 static async getMissedQuizzes(studentId) {
     const [quizzes] = await pool.execute(`
