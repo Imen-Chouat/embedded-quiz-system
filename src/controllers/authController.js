@@ -3,10 +3,10 @@ import envConfig from '../config/envConfig.js';
 import Teacher from '../modules/Teacher.js';
 
 const generateTokensTeacher= (teacher)=>{
-    const accessToken = jwt.sign({id:teacher.id , email:teacher.email},envConfig.JWT_SECRET,{expiresIn : '15m'});
+    const accessToken = jwt.sign({id:teacher.id , email:teacher.email},envConfig.JWT_SECRET,{expiresIn : '7d'});
     const refreshToken = jwt.sign({id:teacher.id,email:teacher.email},envConfig.REFRESH_TOKEN_SECRET,{expiresIn:'90d'});
     return {accessToken , refreshToken} ;
-}
+} 
 const refreshAccessToken = (req,res)=>{
     try {
         const {refreshToken} = req.cookies;
