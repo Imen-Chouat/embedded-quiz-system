@@ -93,7 +93,23 @@ static async getStudentAnswerForQuestion({ student_id, quiz_id, question_id }) {
         }
     }
 
-
+//Imen: Get correct Answer for specific question
+    static async getCorrectAnswerByQuestionId(question_id){
+        try {
+            const [answers] = await pool.query(
+                `SELECT * FROM answers WHERE question_id = ? AND is_correct = ?`,
+                [question_id, 1]
+            );
+    
+            if (answers.length === 0) {
+                return { error: "No correct answer found for this question" };
+            }
+    
+            return answers[0]; // or return the whole array if multiple corrects are allowed
+        } catch (error) {
+            return { error: error.message };
+        }
+    }
 
 static async submitAnswer({ student_id, quiz_id, question_id, answer_id }) {
     try {
