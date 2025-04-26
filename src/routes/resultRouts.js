@@ -12,6 +12,8 @@ router.get('/:studentId/completed',resultControllers. getStudentCompletedQuizzes
 router.get('/:studentId/modules', resultControllers.getStudentModules);
 router.get('/:studentId/upcoming',  resultControllers.getStudentUpcomingQuizzes);
 router.get('/:studentId/missed', resultControllers.getStudentMissedQuizzes);
+router.post('/quizQuestionChoicePercentage',authTeacherMiddleware,resultControllers.questionChoicePercentage);
+router.post('/quizQuestionSuccessRate',authTeacherMiddleware,resultControllers.questionSuccessRate);
 
 
 
