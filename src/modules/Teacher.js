@@ -82,6 +82,19 @@ class Teacher {
             throw new Error(`Error fetching teacher name: ${error.message}`);
         }
     }
+    static async getEmail(id){
+        try {
+            const [teacher] = await pool.execute(`SELECT email FROM teachers WHERE id = ?`,[id]);
+            if(teacher.length === 0){
+                return null ;
+            }else{
+                const teacherFound = teacher[0] ;
+                return teacherFound.email;
+            }
+        } catch (error) {
+            throw new Error(`Error fetching teacher name: ${error.message}`);
+        }
+    }
     static async getSurName(id){
         try {
             const [teacher] = await pool.execute(`SELECT surname FROM teachers WHERE id = ? ;`,[id]);
@@ -131,8 +144,12 @@ class Teacher {
     }
     static async addTeacherModule(teacher_id,module_id){
         try {
-            const [rows] = await pool.execute(`INSERT INTO teach_module (teacher_id ,module_id) VALUES (?,?)`,[teacher_id,module_id]);
-            return rows.affectedRows ;
+            const [check] = await pool.execute(`SELECT * FROM teach_module WHERE teacher_id = ? AND module_id = ?`,[teacher_id,module_id]);
+            if(check.length === 0){
+                const [rows] = await pool.execute(`INSERT INTO teach_module (teacher_id ,module_id) VALUES (?,?)`,[teacher_id,module_id]);
+                return rows.affectedRows ;
+            }
+            return -567;
         } catch (error) {
             throw new Error(`Error adding a module to teacher: ${error.message}`);              
         }
