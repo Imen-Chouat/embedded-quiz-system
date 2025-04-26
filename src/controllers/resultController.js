@@ -129,12 +129,30 @@ const getQuizParticipantsTable = async (req, res) => {
         res.status(500).json({ message:'error finding the choices percentage'});
     }
 }
-
+export const questionSuccessRate = async (req,res) => {
+    try {
+        const {quiz_id} = req.body ;
+        let questions = await Question.getQuizQuestions(quiz_id);
+        if(questions.length == 0){
+            return res.status(401).json({message:"no question for thid quiz ."});
+        }
+        let questionNpercentage = [];
+        for(const question of questions){
+            let answerCorrect = await Answer.getCorrectAnswerByQuestionId(question.id);
+            let percentage = await Result.choicePercentage(question.id,answerCorrect.id);
+            questionNpercentage.push({question,percentage});
+        }
+        return res.status(200).json({message:"successfully fetching the percentage of each question.",questionNpercentage});
+    } catch (error) {
+        res.status(500).json({ message:'error finding the choices percentage'});
+    }
+}
 export default {
     getQuizAttendance,
     getAverageQuizGrade,
     getQuizSuccessRate,
     questionChoicePercentage ,
+    questionSuccessRate,
     getScore,
     getQuizParticipantsTable,
     getStudentModules,
