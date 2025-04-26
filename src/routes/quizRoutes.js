@@ -46,7 +46,7 @@ router.post("/auto-submit", authenticateStudent, quizController.autoSubmitQuiz);
 router.post("/addquizparticipants", authTeacherMiddleware, quizController.addquizparticipants);
 router.post("/importQuiz", authTeacherMiddleware, upload.single('file'), quizController.importQuiz);
 router.post("/start_teach",authenticateStudent , quizController.startQuizbyteach);
-
+router.post("/reviewDraftQuiz",authTeacherMiddleware,quizController.SeeDraftQuiz);
 router.get("/randomize/:quizId", quizController.randomazation);
 
 
