@@ -319,6 +319,144 @@ const getTeachermodules = async (req, res) => {
       return res.status(500).json({ message: "Error in fetching modules." });
     }
   };
+const getTeacherClasses = async (req, res) => {
+    try {
+      const teacherId = req.teacher.id;
+  
+      const [levels] = await pool.query(`
+        SELECT DISTINCT lv.id AS level_id, lv.level_name
+        FROM teachers t
+        JOIN teach_module tm ON t.id = tm.teacher_id
+        JOIN level_module lm ON tm.module_id = lm.module_id
+        JOIN levels lv ON lm.level_id = lv.id
+        WHERE t.id = ?
+      `, [teacherId]);
+  
+      const levelsCleaned = [];
+  
+      for (const level of levels) {
+        const [sections] = await pool.query(`
+          SELECT s.id AS section_id, s.section_name
+          FROM sections s
+          WHERE s.level_id = ?
+        `, [level.level_id]);
+  
+        const sectionsCleaned = [];
+  
+        for (const section of sections) {
+          const [groups] = await pool.query(`
+            SELECT g.id AS group_id, g.group_name
+            FROM student_groups g
+            WHERE g.section_id = ?
+          `, [section.section_id]);
+  
+          const cleanedGroups = groups.map(g => ({
+            group_id: g.group_id,
+            group_name: g.group_name
+          }));
+  
+          sectionsCleaned.push({
+            section_id: section.section_id,
+            section_name: section.section_name,
+            groups: cleanedGroups
+          });
+        }
+  
+        levelsCleaned.push({
+          level_id: level.level_id,
+          level_name: level.level_name,
+          sections: sectionsCleaned
+        });
+      }
+  
+      res.status(200).json({ levels: levelsCleaned });
+  
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  const getTeacherLevels = async (req, res) => {
+    try {
+      const teacherId = req.teacher.id;
+  
+      const [levels] = await pool.query(`
+        SELECT DISTINCT lv.id AS level_id, lv.level_name
+        FROM teachers t
+        JOIN teach_module tm ON t.id = tm.teacher_id
+        JOIN level_module lm ON tm.module_id = lm.module_id
+        JOIN levels lv ON lm.level_id = lv.id
+        WHERE t.id = ?
+      `, [teacherId]);
+  
+      const levelsCleaned = levels.map(level => ({
+        level_id: level.level_id,
+        level_name: level.level_name
+      }));
+  
+      res.status(200).json({ levels: levelsCleaned });
+  
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  const getTeacherSections = async (req, res) => {
+    try {
+      const teacherId = req.teacher.id;
+  
+      const [sections] = await pool.query(`
+        SELECT DISTINCT s.id AS section_id, s.section_name
+        FROM teachers t
+        JOIN teach_module tm ON t.id = tm.teacher_id
+        JOIN level_module lm ON tm.module_id = lm.module_id
+        JOIN levels lv ON lm.level_id = lv.id
+        JOIN sections s ON s.level_id = lv.id
+        WHERE t.id = ?
+      `, [teacherId]);
+  
+      res.status(200).json({ sections });
+      
+    } catch (error) {
+      console.error("Error fetching teacher sections:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  const getTeacherGroups = async (req, res) => {
+    try {
+      const teacherId = req.teacher.id;
+  
+      const [groups] = await pool.query(`
+        SELECT DISTINCT 
+          g.id AS group_id,
+          g.group_name
+        FROM teachers t
+        JOIN teach_module tm ON t.id = tm.teacher_id
+        JOIN level_module lm ON tm.module_id = lm.module_id
+        JOIN levels lv ON lm.level_id = lv.id
+        JOIN sections s ON s.level_id = lv.id
+        JOIN student_groups g ON g.section_id = s.id
+        WHERE t.id = ?
+      `, [teacherId]);
+  
+      res.status(200).json({ groups });
+  
+    } catch (error) {
+      console.error("Error fetching teacher groups:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  const getTeachermodules = async (req, res) => {
+    try {
+      const id = req.teacher.id;
+      const modules = await Teacher.getTeacherModules(id);
+      return res.status(200).json({ modules }); // ✅ Wrap in JSON response
+    } catch (error) {
+      console.error("Error fetching teacher modules:", error);
+      return res.status(500).json({ message: "Error in fetching modules." });
+    }
+  };
+
 
 export default {
     registerTeacher ,
@@ -336,5 +474,9 @@ export default {
     updateModuleName,
     uploadStudentFile,
     deleteAccount,
-    getTeachermodules
+    getTeachermodules ,
+    getTeacherClasses ,
+    getTeacherLevels ,
+    getTeacherSections ,
+    getTeacherGroups 
 };
