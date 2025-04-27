@@ -1,6 +1,3 @@
-
-
-
 import pool from '../config/dbConfig.js';
 
 class Result {
@@ -20,22 +17,50 @@ class Result {
     static async getStudentModules(studentId) {
         try {
             const [modules] = await pool.execute(`
-                SELECT m.id, m.name, m.description
+                SELECT m.id, m.moduleName AS name
                 FROM students s
-                JOIN student_groups g ON s.group_id = g.id
+                JOIN student_group_csv sgc ON s.email = sgc.email
+                JOIN student_groups g ON sgc.group_id = g.id
                 JOIN sections sec ON g.section_id = sec.id
-                JOIN levels l ON sec.level_id = l.id
-                JOIN level_module lm ON l.id = lm.level_id
+                JOIN level_module lm ON sec.level_id = lm.level_id
                 JOIN modules m ON lm.module_id = m.id
                 WHERE s.id = ?
             `, [studentId]);
-
+    
             return modules;
         } catch (error) {
-            console.error('Error fetching student modules:', error.message);
+            console.error('Error fetching student modules:', error);
             throw new Error('Failed to retrieve student modules');
         }
     }
+    
+    static async getCompletedQuizzesForStudentInModule(studentId, moduleName) {
+        if (!studentId || !moduleName) {
+            throw new Error('Student ID and Module Name are required');
+        }
+    
+        try {
+            const [quizzes] = await pool.execute(`
+                SELECT 
+                    q.id AS quiz_id,
+                    q.title AS quiz_title,
+                    qa.score AS student_score,
+                    qa.status AS quiz_status
+                FROM quizzes q
+                JOIN quiz_attempts qa ON qa.quiz_id = q.id
+                JOIN modules m ON q.module_id = m.id
+                WHERE qa.student_id = ? 
+                AND m.moduleName = ?  -- Utilisation du nom du module
+                AND qa.status = 'submitted'  -- Only quizzes that are submitted
+            `, [studentId, moduleName]);
+    
+            return quizzes;
+        } catch (error) {
+            console.error('Error fetching completed quizzes for student in module:', error);
+            throw new Error('Failed to retrieve completed quizzes for student');
+        }
+    }
+    
     
     static async  calculateScore(studentId, quizId) {
     try {
@@ -115,17 +140,31 @@ class Result {
             throw error;
         }
     }
-// Get all quizzes assigned to the student's group
-static async getUpcomingQuizzes(studentId) {
-    const [quizzes] = await pool.execute(`
-        SELECT q.*
-        FROM quizzes q
-        JOIN groups g ON q.group_id = g.id
-        JOIN students s ON s.group_id = g.id
-        WHERE s.id = ? AND q.date > NOW()
-    `, [studentId]);
-    return quizzes;
-}
+    static async getStudentQuizzes(studentId) {
+        //try {
+            const [quizzes] = await pool.execute(`
+                SELECT 
+                    q.id,
+                    q.title,
+                    q.duration,
+                
+                    CASE 
+                        WHEN qp.id IS NOT NULL THEN 'Done'
+                        ELSE 'Absent'
+                    END AS status
+                FROM quizzes q
+                LEFT JOIN quizparticipants qp 
+                    ON qp.quiz_id = q.id AND qp.student_id = ?
+                WHERE q.created_at < NOW()
+            `, [studentId]);
+    
+            return quizzes;
+        /*} catch (error) {
+            console.error("Error fetching student quizzes:", error.message);
+            throw new Error("Unable to retrieve student quizzes");
+        }*/
+    }
+    
 
 
 
@@ -213,10 +252,9 @@ static async getMissedQuizzes(studentId) {
             throw new Error(`Erreur lors du calcul du pourcentage des choix: ${error.message}`);
         }
     }
-}
 
+}
 export default Result;
 
 
-};
 
