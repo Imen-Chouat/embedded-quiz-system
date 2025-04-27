@@ -6,16 +6,17 @@ import Organization from '../modules/Organization.js';
 import authController from './authController.js';
 import fs from 'fs';
 import csv from 'csv-parser';
+import pool from '../config/dbConfig.js';
 //Imen : this is to register a teacher for the first time
 const registerTeacher = async (req,res)=>{
     try {
         const {name , surname , email , password} = req.body ;
         if(!name || !surname || !email || !password ){
-            return res.status(433).json({"message":"all fields are required!"});
+            return res.status(404).json({"message":"all fields are required!"});
         }
         const emailExist = await Teacher.searchByemail(email);
         if(emailExist){
-           return res.status(444).send({"message" : "Email already exists ."}) ;
+           return res.status(404).send({"message" : "Email already exists ."}) ;
         }
         const password_hash = await bcryptjs.hash(password,10);
         const newID = await Teacher.create(name,surname,email,password_hash);
@@ -182,14 +183,6 @@ const modifyPassword = async (req,res) => {
         
     }
 }
-//Imen:
-const addLevel = async (req,res) => {
-    try {
-        
-    } catch (error) {
-        return res.status(500).json({message:"error adding a new Level to the teacher "});
-    }
-};
 //Imen :
 const addTeacherModule = async (req,res)=> {
     //try { 
@@ -319,7 +312,7 @@ const getTeachermodules = async (req, res) => {
       return res.status(500).json({ message: "Error in fetching modules." });
     }
   };
-const getTeacherClasses = async (req, res) => {
+  const getTeacherClasses = async (req, res) => {
     try {
       const teacherId = req.teacher.id;
   
@@ -446,17 +439,6 @@ const getTeacherClasses = async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   };
-  const getTeachermodules = async (req, res) => {
-    try {
-      const id = req.teacher.id;
-      const modules = await Teacher.getTeacherModules(id);
-      return res.status(200).json({ modules }); // ✅ Wrap in JSON response
-    } catch (error) {
-      console.error("Error fetching teacher modules:", error);
-      return res.status(500).json({ message: "Error in fetching modules." });
-    }
-  };
-
 
 export default {
     registerTeacher ,
@@ -474,9 +456,10 @@ export default {
     updateModuleName,
     uploadStudentFile,
     deleteAccount,
-    getTeachermodules ,
-    getTeacherClasses ,
-    getTeacherLevels ,
-    getTeacherSections ,
-    getTeacherGroups 
+    getTeachermodules,
+    getTeacherLevels,
+    getTeacherClasses,
+    getTeacherSections,
+    getTeacherGroups
+
 };
