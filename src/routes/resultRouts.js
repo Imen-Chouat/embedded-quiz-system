@@ -1,6 +1,6 @@
 import express from 'express';
 import resultControllers from '../controllers/resultController.js';
-
+import { authTeacherMiddleware } from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
 router.get('/quizAttendance/:quiz_id', resultControllers.getQuizAttendance);
@@ -8,13 +8,14 @@ router.get('/quizAverageGrade/:quiz_id', resultControllers.getAverageQuizGrade);
 router.get('/quizSuccessRate/:quiz_id', resultControllers.getQuizSuccessRate);
 router.get('/quiz/:quizId/student/:studentId/score', resultControllers.getScore);
 router.get('/quiz/:quizId/participants', resultControllers.getQuizParticipantsTable);
-router.get('/:studentId/completed',resultControllers. getStudentCompletedQuizzes);
+router.get('/:studentId/completed',resultControllers.getStudentCompletedQuizzes);
 router.get('/:studentId/modules', resultControllers.getStudentModules);
-router.get('/:studentId/upcoming',  resultControllers.getStudentUpcomingQuizzes);
+
 router.get('/:studentId/missed', resultControllers.getStudentMissedQuizzes);
 router.post('/quizQuestionChoicePercentage',authTeacherMiddleware,resultControllers.questionChoicePercentage);
 router.post('/quizQuestionSuccessRate',authTeacherMiddleware,resultControllers.questionSuccessRate);
-
+router.get('/:studentId/quizzes', resultControllers.getStudentQuizzes);
+router.get('/:studentId/module/:moduleId/completed-quizzes', resultControllers.getCompletedQuizzesForStudentInModule);
 
 
 export default router;
