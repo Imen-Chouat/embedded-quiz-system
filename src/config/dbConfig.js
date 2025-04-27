@@ -37,13 +37,11 @@ async function createStudentsTable() {
         const [result] = await pool.query(`
             CREATE TABLE IF NOT EXISTS students (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                group_id INT,
                 last_name VARCHAR(100) NOT NULL,
                 first_name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
                 refrech_token VARCHAR(255) DEFAULT NULL
             );
         `);
@@ -61,7 +59,7 @@ async function createQuizzesTable() {
                     title VARCHAR(255) NOT NULL,
                     status ENUM('Draft', 'Past') NOT NULL DEFAULT 'Draft' ,
                     timed_by ENUM('quiz','question') NOT NULL,
-                    duration INT,
+                    duration TIME,
                     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
                     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE 
                 );
