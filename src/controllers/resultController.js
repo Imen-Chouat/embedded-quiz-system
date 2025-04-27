@@ -9,24 +9,57 @@ import Answer from '../modules/Answer.js';
         res.status(500).json({ error: error.message });
     }
 };
+
 const getStudentModules = async (req, res) => {
-    const { studentId } = req.params;
+    const studentId = Number(req.params.studentId);
+    if (isNaN(studentId)) {
+        return res.status(400).json({ error: 'Invalid student ID' });
+    }
+
     try {
-        const modules = await Student.getStudentModules(studentId);
+        const modules = await Result.getStudentModules(studentId);
+        if (!modules.length) {
+            return res.status(404).json({ message: 'No modules found for this student' });
+        }
         res.status(200).json({ studentId, modules });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
-export const getStudentUpcomingQuizzes = async (req, res) => {
+
+const getCompletedQuizzesForStudentInModule = async (req, res) => {
+    const { studentId, moduleName } = req.params;
+
+    // Vérifier si studentId ou moduleName sont indéfinis
+    if (!studentId || !moduleName) {
+        return res.status(400).json({ error: 'Student ID and Module Name are required' });
+    }
+
     try {
-        const quizzes = await Student.getUpcomingQuizzes(req.params.studentId);
-        res.json({ upcoming_quizzes: quizzes });
+        const quizzes = await Result.getCompletedQuizzesForStudentInModule(studentId, moduleName);
+
+        if (quizzes.length === 0) {
+            return res.status(404).json({ message: 'No completed quizzes found for this student in this module' });
+        }
+
+        return res.status(200).json({ studentId, moduleName, quizzes });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error fetching completed quizzes:', error);
+        return res.status(500).json({ error: error.message });
     }
 };
 
+
+
+const getStudentQuizzes = async (req, res) => {
+    const { studentId } = req.params;
+    //try {
+        const quizzes = await Result.getStudentQuizzes(studentId);
+        res.status(200).json({ studentId, quizzes });
+    /*} catch (error) {
+        res.status(500).json({ error: error.message });
+    }*/
+};
 
 
 export const getStudentMissedQuizzes = async (req, res) => {
@@ -157,7 +190,8 @@ export default {
     getQuizParticipantsTable,
     getStudentModules,
     getStudentCompletedQuizzes,
-    getStudentUpcomingQuizzes,
+    getStudentQuizzes,
+    getCompletedQuizzesForStudentInModule,
     getStudentMissedQuizzes
     
 };
