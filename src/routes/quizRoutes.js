@@ -35,7 +35,7 @@ router.post("/addquizparticipants", authTeacherMiddleware, quizController.addqui
 router.post("/importQuiz", authTeacherMiddleware, upload.single('file'), quizController.importQuiz);
 router.post("/start_teach",authenticateStudent , quizController.startQuizbyteach);
 router.post("/reviewDraftQuiz",quizController.SeeQuiz);
-router.get("/randomize/:quizId", quizController.randomazation);
+router.get("/randomize/:quizId",authTeacherMiddleware, quizController.randomazation);
 export default router;
 
 
