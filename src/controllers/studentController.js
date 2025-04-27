@@ -8,8 +8,6 @@ import authController from './authController.js';
 import Question from '../modules/Question.js';
 import Answers from '../modules/Answer.js';
 import Quiz from '../modules/Quiz.js';
-
-
 const registerStudent = async (req, res) => {
     try {
       const { first_name, last_name, email, password} = req.body;
@@ -159,8 +157,6 @@ const updateStudentGroup = async (req, res) => {
 const GetStudentInfo = async (req, res) => {
     try {
       const studentId = req.student.id;
-  
-      // Query to fetch student info including group, section, and level.
       const [results] = await pool.execute(`
         SELECT 
           s.email,
@@ -197,11 +193,6 @@ const GetStudentInfo = async (req, res) => {
       res.status(500).json({ message: 'Error fetching student info.' });
     }
   };
-  
-
-
-  
-  
 const deleteAccount = async (req, res) => {
     try {
         
@@ -212,20 +203,15 @@ const deleteAccount = async (req, res) => {
         if (!student) {
             return res.status(404).json({ message: "No user with this ID!" });
         }
-
         await Student.delete(studentId);
         res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: "Strict" });
-
         return res.status(200).json({ message: "Student account deleted successfully." });
-
     } catch (error) {
         console.error("Error deleting account:", error);
         return res.status(500).json({ message: "Error in deleting the account." });
     }
 };
-
-
-        const reviewQuiz = async (req,res) => {
+const reviewQuiz = async (req,res) => {
             try {
                 const {student_id,quiz_id} = req.body ;
                 const [attended] = await pool.execute(`SELECT * FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`,[quiz_id,student_id]);
@@ -259,9 +245,7 @@ const deleteAccount = async (req, res) => {
                 return res.status(500).json({message:"error fetching the quiz review"});
             }
         }  ;
-       /* ---------------------------------------------------------------------------------------------------------------*/
-       // classes page te3 OLA 
-    
+/* ---------------------------------------------------------------------------------------------------------------*/
 const getstudentbygroup = async (req, res) => {
    
   try {
