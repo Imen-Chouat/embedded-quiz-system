@@ -8,9 +8,9 @@ const upload = multer({dest : 'uploads/'});
 
 router.post('/register',teacherControllers.registerTeacher);
 router.post('/login',teacherControllers.loginTeacher);
-router.post('/getFirstName',authTeacherMiddleware,teacherControllers.getFirstName);
-router.post('/getLastName',authTeacherMiddleware,teacherControllers.getLastName);
-router.post('/getEmail',authTeacherMiddleware,teacherControllers.getEmail);
+router.get('/getFirstName',authTeacherMiddleware,teacherControllers.getFirstName);
+router.get('/getLastName',authTeacherMiddleware,teacherControllers.getLastName);
+router.get('/getEmail',authTeacherMiddleware,teacherControllers.getEmail);
 router.patch('/modifyName',authTeacherMiddleware,teacherControllers.modifyName);// Imen : updating the name feild 
 router.patch('/modifySurName',authTeacherMiddleware,teacherControllers.modifySurName);
 router.patch('/modifyPassword',authTeacherMiddleware,teacherControllers.modifyPassword);
