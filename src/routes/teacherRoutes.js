@@ -23,4 +23,8 @@ router.patch('/updateModuleName',authTeacherMiddleware,teacherControllers.update
 router.post('/upload-students', upload.single('file'), teacherControllers.uploadStudentFile);
 router.delete('/deleteAccount',authTeacherMiddleware,teacherControllers.deleteAccount);
 router.get('/getModules',authTeacherMiddleware,teacherControllers.getTeachermodules);
+router.get('/classes', authTeacherMiddleware , teacherControllers.getTeacherClasses);
+router.get('/getTeacherLevels', authTeacherMiddleware , teacherControllers.getTeacherLevels);
+router.get('/getTeacherSections',authTeacherMiddleware ,teacherControllers.getTeacherSections);
+router.get('/getTeacherGroups',authTeacherMiddleware ,teacherControllers.getTeacherGroups);
 export default router;
