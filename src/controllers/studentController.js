@@ -8,6 +8,8 @@ import authController from './authController.js';
 import Question from '../modules/Question.js';
 import Answers from '../modules/Answer.js';
 import Quiz from '../modules/Quiz.js';
+
+
 const registerStudent = async (req, res) => {
     try {
       const { first_name, last_name, email, password} = req.body;
@@ -21,6 +23,10 @@ const registerStudent = async (req, res) => {
       console.log("Creating student..."); 
       const newID = await Student.create(first_name, last_name, email, password_hash );
       const student = await Student.getById(newID);
+      if (student) {
+        delete student.password_hash;
+      }
+  
       return res.status(201).json(student);
     } catch (error) {
       console.error("Error in registerStudent:", error);
@@ -67,6 +73,9 @@ const modify_LastName = async (req,res) =>{
         const modified = await Student.update_LastName(studentId, newName);
         if(modified > 0) {
             student = await Student.getById(studentId);
+            if (student) {
+                delete student.password_hash;
+              }
             return res.status(200).json({"message" : "The name modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the name !"});
@@ -87,6 +96,9 @@ const modify_FirstName = async (req,res) =>{
         const modified = await Student.update_FirstName( studentId , newName);
         if(modified > 0) {
             student = await Student.getById( studentId );
+            if (student) {
+                delete student.password_hash;
+              }
             return res.status(200).json({"message" : "The firstname modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the firstname !"});
@@ -107,6 +119,7 @@ const modify_password = async (req,res) =>{
         const modified = await Student.update_Password( studentId ,new_password);
         if(modified > 0) {
             student = await Student.getById(studentId );
+            
             return res.status(200).json({"message" : "The password modified successfully",student});
         }
         return res.status(400).json({"message":"Failling in modifying the password !"});
@@ -193,6 +206,11 @@ const GetStudentInfo = async (req, res) => {
       res.status(500).json({ message: 'Error fetching student info.' });
     }
   };
+  
+
+
+  
+  
 const deleteAccount = async (req, res) => {
     try {
         
@@ -203,15 +221,20 @@ const deleteAccount = async (req, res) => {
         if (!student) {
             return res.status(404).json({ message: "No user with this ID!" });
         }
+
         await Student.delete(studentId);
         res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: "Strict" });
+
         return res.status(200).json({ message: "Student account deleted successfully." });
+
     } catch (error) {
         console.error("Error deleting account:", error);
         return res.status(500).json({ message: "Error in deleting the account." });
     }
 };
-const reviewQuiz = async (req,res) => {
+
+
+        const reviewQuiz = async (req,res) => {
             try {
                 const {student_id,quiz_id} = req.body ;
                 const [attended] = await pool.execute(`SELECT * FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`,[quiz_id,student_id]);
@@ -245,26 +268,39 @@ const reviewQuiz = async (req,res) => {
                 return res.status(500).json({message:"error fetching the quiz review"});
             }
         }  ;
-/* ---------------------------------------------------------------------------------------------------------------*/
-const getstudentbygroup = async (req, res) => {
-   
-  try {
-    const { groupId } = req.body;
-    const [students] = await pool.query(`
-      SELECT  s.email
-      FROM student_group_csv s
-      WHERE s.group_id = ?
-    `, [groupId]);
-
-    if (students.length === 0) {
-      return res.status(404).json({ message: 'No students found in this group.' });
-    }
-    res.json(students);
-  } catch (error) {
-    console.error("Error fetching students:", error);
-    res.status(500).json({ message: 'Error fetching students.' });
-  }} ;
-
+       /* ---------------------------------------------------------------------------------------------------------------*/
+       // classes page te3 OLA 
+    
+       const getstudentbygroup = async (req, res) => {
+        try {
+          const { groupId } = req.body;
+      
+          const [students] = await pool.query(`
+            SELECT 
+              s.email,
+              st.first_name AS first_name,
+              st.last_name AS last_name,
+              CASE 
+                WHEN st.email IS NOT NULL THEN true
+                ELSE false
+              END AS isLogged
+            FROM student_group_csv s
+            LEFT JOIN students st ON s.email = st.email
+            WHERE s.group_id = ?
+          `, [groupId]);
+      
+          if (students.length === 0) {
+            return res.status(404).json({ message: 'No students found in this group.' });
+          }
+      
+          res.json(students);
+      
+        } catch (error) {
+          console.error("Error fetching students:", error);
+          res.status(500).json({ message: 'Error fetching students.' });
+        }
+      };
+      
 export default {
     registerStudent ,
     loginStudent ,
