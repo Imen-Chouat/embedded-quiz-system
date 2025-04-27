@@ -3,7 +3,6 @@ import quizController from '../controllers/quizController.js';
 import authenticateStudent, { authTeacherMiddleware } from '../middlewares/authMiddleware.js';
 import multer from 'multer';
 import fs from 'fs';
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadDir = 'uploads/';
@@ -16,23 +15,12 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
-
 const upload = multer({ storage });
-
-
-
-
-
 const router = express.Router();
-
-
-
 router.post("/create", authTeacherMiddleware, quizController.createQuiz);
-
 router.delete('/:id', authTeacherMiddleware, quizController.deleteQuiz);
 router.patch('/:id/title', authTeacherMiddleware, quizController.update_title);
 router.patch('/:id/duration', authTeacherMiddleware, quizController.update_duration);
-
 router.patch('/:id/timedby', authTeacherMiddleware, quizController.update_timedby);
 router.post('/ALLQuizzesbymodule', authTeacherMiddleware, quizController.ALLQuizzesbymodule );
 router.post('/Draft_Quizzesbymodule', authTeacherMiddleware, quizController.Draft_Quizzesbymodule);
@@ -48,9 +36,6 @@ router.post("/importQuiz", authTeacherMiddleware, upload.single('file'), quizCon
 router.post("/start_teach",authenticateStudent , quizController.startQuizbyteach);
 router.post("/reviewDraftQuiz",quizController.SeeQuiz);
 router.get("/randomize/:quizId", quizController.randomazation);
-
-
-
 export default router;
 
 
