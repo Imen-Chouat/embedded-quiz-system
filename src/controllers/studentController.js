@@ -5,6 +5,9 @@ import Student from '../modules/Student.js';
 import pool from '../config/dbConfig.js';
 import Organization from '../modules/Organization.js';
 import authController from './authController.js';
+import Question from '../modules/Question.js';
+import Answers from '../modules/Answer.js';
+import Quiz from '../modules/Quiz.js';
 
 
 const registerStudent = async (req, res) => {
@@ -153,7 +156,52 @@ const updateStudentGroup = async (req, res) => {
         return res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+const GetStudentInfo = async (req, res) => {
+    try {
+      const studentId = req.student.id;
+  
+      // Query to fetch student info including group, section, and level.
+      const [results] = await pool.execute(`
+        SELECT 
+          s.email,
+          s.first_name,
+          s.last_name,
+          sg.group_name,
+          sec.section_name,
+          lv.level_name
+        FROM students s
+        LEFT JOIN student_group_csv sgc ON s.email = sgc.email
+        LEFT JOIN student_groups sg ON sgc.group_id = sg.id
+        LEFT JOIN sections sec ON sg.section_id = sec.id
+        LEFT JOIN levels lv ON sec.level_id = lv.id
+        WHERE s.id = ?
+      `, [studentId]);
+  
+      if (results.length === 0) {
+        return res.status(404).json({ message: 'Student not found.' });
+      }
+  
+     
+      const studentInfo = {
+        email: results[0].email,
+        first_name: results[0].first_name,
+        last_name: results[0].last_name,
+        group_name: results[0].group_name || 'No group assigned',
+        section_name: results[0].section_name || 'No section assigned',
+        level_name: results[0].level_name || 'No level assigned',
+      };
+  
+      res.status(200).json(studentInfo);
+    } catch (error) {
+      console.error("Error fetching student info:", error);
+      res.status(500).json({ message: 'Error fetching student info.' });
+    }
+  };
+  
 
+
+  
+  
 const deleteAccount = async (req, res) => {
     try {
         
@@ -181,7 +229,7 @@ const deleteAccount = async (req, res) => {
             try {
                 const {student_id,quiz_id} = req.body ;
                 const [attended] = await pool.execute(`SELECT * FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`,[quiz_id,student_id]);
-                if(!attended.length){
+                if(attended.length === 0 ){
                     return res.status(404).json({message:"the student did not attend this quiz ."});
                 }
                 const questions = await Question.getQuizQuestions(quiz_id);
@@ -196,7 +244,7 @@ const deleteAccount = async (req, res) => {
                             return { question, answer: null }; // No answer for this question
                         }
         
-                        let { answer_text, is_correct } = await Answer.getAnswerById(answer[0].id);
+                        let { answer_text, is_correct } = await Answers.getAnswerById(answer[0].id);
                         return { 
                             question, 
                             answer: { id: answer[0].id, answer_text, is_correct } 
@@ -211,21 +259,13 @@ const deleteAccount = async (req, res) => {
                 return res.status(500).json({message:"error fetching the quiz review"});
             }
         }  ;
+       /* ---------------------------------------------------------------------------------------------------------------*/
+       // classes page te3 OLA 
+    
 const getstudentbygroup = async (req, res) => {
    
   try {
-    const { group_name } = req.body;
-    const [group] = await pool.query(`
-      SELECT id
-      FROM student_groups
-      WHERE group_name = ?
-    `, [group_name]);
-
-    if (group.length === 0) {
-      return res.status(404).json({ message: 'Group not found.' });
-    }
-
-    const groupId = group[0].id;
+    const { groupId } = req.body;
     const [students] = await pool.query(`
       SELECT  s.email
       FROM student_group_csv s
@@ -250,6 +290,6 @@ export default {
     modify_password ,
     updateStudentGroup ,
     reviewQuiz ,
-    getstudentbygroup 
-
+    getstudentbygroup ,
+    GetStudentInfo
 };
