@@ -1,4 +1,3 @@
-
 import jwt from "jsonwebtoken";
 import envConfig from "../config/envConfig.js";
 import Quiz from "../modules/Quiz.js";
@@ -9,12 +8,17 @@ import multer from "multer";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import OpenAI from "openai";
+import Question from '../modules/Question.js';
+import Answer from '../modules/Answer.js';
+import authTeacherMiddleware from '../middlewares/authMiddleware.js';
+
+
 
 
 const createQuiz = async (req, res) => {
     try {
         const teacher_id = req.teacher.id;
-        const { title, module, timed_by, duration } = req.body;
+        const { title, module, timed_by, duration, studentEmails,levelName , sectionNames , groupNames  } = req.body;
         const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9]):([0-5]?[0-9])$/;
         
         if (timed_by === 'quiz' && !timeRegex.test(duration)) {
@@ -29,6 +33,7 @@ const createQuiz = async (req, res) => {
         }
 
         const module_id = moduleRows[0].id;
+        
 
         const [teachRows] = await pool.execute(
             `SELECT * FROM teach_module WHERE teacher_id = ? AND module_id = ?`,
@@ -36,7 +41,7 @@ const createQuiz = async (req, res) => {
         );
         if (teachRows.length === 0) {
             return res.status(403).json({ message: "Unauthorized. You can only create quizzes for modules you teach." });
-        }
+        } 
 
         let quizDuration;
 
@@ -49,7 +54,6 @@ const createQuiz = async (req, res) => {
         }
         const quizId = await Quiz.create(teacher_id, module_id, title, timed_by, quizDuration);
         const quiz = await Quiz.findById(quizId);
-
         return res.status(201).json({ quiz });
 
     } catch (error) {
@@ -214,6 +218,33 @@ const update_timedby = async (req, res) => {
         return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
     }
 }; 
+const update_Module = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { module } = req.body;
+        const teacherId = req.teacher.id; 
+
+        const quiz = await Quiz.findById(id);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found." });
+        }
+
+        if (quiz.teacher_id !== teacherId) {
+            return res.status(403).json({ message: "Unauthorized. You can only update your own quizzes." });
+        }
+
+        const isUpdated = await Quiz.update_Module(id, module);
+        if (isUpdated) {
+            const updatedQuiz = await Quiz.findById(id);
+            return res.status(200).json({ message: "Quiz updated successfully.", quiz: updatedQuiz });
+        }
+
+        return res.status(400).json({ message: "Quiz update failed." });
+    } catch (error) {
+        console.error("Error updating quiz:", error);
+        return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
+    }
+};
 
 const randomazation = async (req, res) => {
     try {
@@ -287,7 +318,10 @@ const addquizparticipants = async (req, res) => {
             [quizId, teacherId]
         );
         if (quiz.length === 0) {
-            return res.status(404).json({ message: "Quiz not found or you don't have permission." });
+            return res.status(404).json({ message: "Quiz not found " });
+        }
+        if (!teacherId) {
+            return res.status(403).json({ message: "teacher unothorized not found " });
         }
 
         if (quiz[0].status !== "Draft") {
@@ -295,73 +329,80 @@ const addquizparticipants = async (req, res) => {
         }
 
         let studentIds = new Set();
-        if (levelName && !sectionNames && !groupNames && (!studentEmails || studentEmails.length === 0)) {
-            const [students] = await pool.query(`
-                SELECT s.id FROM students s
-                JOIN student_group_csv sgc ON s.email = sgc.email
-                JOIN student_groups g ON sgc.group_id = g.id
-                JOIN sections sec ON g.section_id = sec.id
-                JOIN levels l ON sec.level_id = l.id
-                WHERE l.level_name = ?`,
-                [levelName]
-            );
-            students.forEach(s => studentIds.add(s.id));
-        }
-        else if (levelName && sectionNames && (!groupNames || groupNames.length === 0)) {
-            const [students] = await pool.query(`
-                SELECT s.id FROM students s
-                JOIN student_group_csv sgc ON s.email = sgc.email
-                JOIN student_groups g ON sgc.group_id = g.id
-                JOIN sections sec ON g.section_id = sec.id
-                JOIN levels l ON sec.level_id = l.id
-                WHERE l.level_name = ? AND sec.section_name IN (?)`,
-                [levelName, sectionNames]
-            );
-            students.forEach(s => studentIds.add(s.id));
-        }
-        else if (levelName && sectionNames && groupNames && groupNames.length > 0) {
-            const [students] = await pool.query(`
-                SELECT s.id FROM students s
-                JOIN student_group_csv sgc ON s.email = sgc.email
-                JOIN student_groups g ON sgc.group_id = g.id
-                JOIN sections sec ON g.section_id = sec.id
-                JOIN levels l ON sec.level_id = l.id
-                WHERE l.level_name = ? AND sec.section_name IN (?) AND g.group_name IN (?)`,
-                [levelName, sectionNames, groupNames]
-            );
-            students.forEach(s => studentIds.add(s.id));
-        }
 
-        if (studentEmails && studentEmails.length > 0) {
-            const [students] = await pool.query(
-                `SELECT id FROM students WHERE email IN (?)`,
-                [studentEmails]
-            );
-            students.forEach(s => studentIds.add(s.id));
-        }
+if (levelName && (!sectionNames || sectionNames.length === 0) && (!groupNames || groupNames.length === 0) && (!studentEmails || studentEmails.length === 0)) {
+    // Only level
+    const [students] = await pool.query(`
+        SELECT s.id FROM students s
+        JOIN student_group_csv sgc ON s.email = sgc.email
+        JOIN student_groups g ON sgc.group_id = g.id
+        JOIN sections sec ON g.section_id = sec.id
+        JOIN levels l ON sec.level_id = l.id
+        WHERE l.level_name = ?`,
+        [levelName]
+    );
+    students.forEach(s => studentIds.add(s.id));
+}
+else if (levelName && sectionNames && sectionNames.length > 0 && (!groupNames || groupNames.length === 0)) {
+   
+    const placeholders = sectionNames.map(() => '?').join(',');
+    const [students] = await pool.query(`
+        SELECT s.id FROM students s
+        JOIN student_group_csv sgc ON s.email = sgc.email
+        JOIN student_groups g ON sgc.group_id = g.id
+        JOIN sections sec ON g.section_id = sec.id
+        JOIN levels l ON sec.level_id = l.id
+        WHERE l.level_name = ? AND sec.section_name IN (${placeholders})`,
+        [levelName, ...sectionNames]
+    );
+    students.forEach(s => studentIds.add(s.id));
+}
+else if (levelName && sectionNames && sectionNames.length > 0 && groupNames && groupNames.length > 0) {
+   
+    const sectionPlaceholders = sectionNames.map(() => '?').join(',');
+    const groupPlaceholders = groupNames.map(() => '?').join(',');
+    const [students] = await pool.query(`
+        SELECT s.id FROM students s
+        JOIN student_group_csv sgc ON s.email = sgc.email
+        JOIN student_groups g ON sgc.group_id = g.id
+        JOIN sections sec ON g.section_id = sec.id
+        JOIN levels l ON sec.level_id = l.id
+        WHERE l.level_name = ? 
+        AND sec.section_name IN (${sectionPlaceholders})
+        AND g.group_name IN (${groupPlaceholders})`,
+        [levelName, ...sectionNames, ...groupNames]
+    );
+    students.forEach(s => studentIds.add(s.id));
+}
 
-        if (studentIds.size === 0) {
-            return res.status(400).json({ message: "No students found for the selected criteria." });
-        }
+if (studentEmails && studentEmails.length > 0) {
+    const emailPlaceholders = studentEmails.map(() => '?').join(',');
+    const [students] = await pool.query(
+        `SELECT id FROM students WHERE email IN (${emailPlaceholders})`,
+        [...studentEmails]
+    );
+    students.forEach(s => studentIds.add(s.id));
+}
 
-        const values = [...studentIds].map(id => [quizId, id]);
-        await pool.query(`INSERT INTO QuizParticipants (quiz_id, student_id) VALUES ?`, [values]);
+// No students found
+if (studentIds.size === 0) {
+    return res.status(400).json({ message: "No students found for the selected criteria." });
+}
 
-        return res.status(200).json({ message: "Quiz started successfully.", studentIds: [...studentIds] });
 
+const values = [...studentIds].map(id => [quizId, id]);
+await pool.query(`INSERT INTO QuizParticipants (quiz_id, student_id) VALUES ?`, [values]);
+
+return res.status(200).json({ message: "Quiz started successfully.", studentIds: [...studentIds] });
+
+        
     } catch (error) {
         console.error("Error in addquizparticipants:", error);
         return res.status(500).json({ message: "Failed to start quiz." });
     }
 };
-
-
-
-
 // import quiz
 // CSV format question , correct(le numéro de la reponse correct ) , options kol wahda fi ligne 
-
-
 // Configure multer for file upload
 const importQuiz = async (req, res) => {
     if (!req.teacher || !req.teacher.id) {
@@ -457,7 +498,23 @@ const importQuiz = async (req, res) => {
         });
 };
 
-
+const getQuizDuration = async (req , res) => {
+    try {
+        const {quizId }= req.params ;
+      const [duration] = await pool.execute(
+        "SELECT duration FROM quizzes WHERE id = ? AND timed_by = ?",
+        [quizId, 'question']
+      );
+      if (duration.length > 0) {
+        res.status(200).json({ duration: duration[0].duration });
+      } else {
+        res.status(404).json({ message: "Quiz not found or not timed by question" });
+      }
+    
+    }catch(error){
+        return res.status(500).json({ message: "Server error", error: error.message });
+    }
+  };
 
 const ALLQuizzesbymodule= async (req, res) => {
     try {
@@ -532,6 +589,7 @@ const startQuizbyteach = async (req, res) => {
 
 const SeeDraftQuiz = async (req ,res )=>{
     try {
+
         const {quiz_id} = req.body ;
         const quiz = await Quiz.findById(quiz_id);
         let questions = await Question.getQuizQuestions(quiz_id);
@@ -541,13 +599,16 @@ const SeeDraftQuiz = async (req ,res )=>{
                 return { question, answers };
             })
         );
-        return res.status(200).json({message:'successfully returned the draft quiz info',draft: {
+        return res.status(200).json({message:'successfully returned the draft quiz info',quiz: {
             quiz, questionNanswers
         }});
     } catch (error) {
         return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
     }
-}
+}; 
+
+
+
 
 
 export default {
@@ -569,6 +630,9 @@ export default {
     submitQuizManually,
     startQuizstudent , 
     importQuiz ,
-    startQuizbyteach,
-    SeeDraftQuiz
+    startQuizbyteach ,
+    SeeDraftQuiz ,
+    update_Module ,
+    
+    getQuizDuration
 } ; 
