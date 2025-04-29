@@ -100,36 +100,9 @@ const calculateScore = async (req, res) => {
         return res.status(500).json({ message: 'Erreur interne du serveur' });
     }
 };
-/*const getQuizParticipantsTable = async (req, res) => {
-    const { quizId } = req.params;
 
-    try {
-        // Récupérer tous les étudiants ayant participé à ce quiz
-        const participants = await Result.getQuizParticipantsTable(quizId); // Utiliser le modèle approprié pour récupérer les participants
 
-        if (participants.length === 0) {
-            return res.status(404).json({ message: 'Aucun étudiant n\'a participé à ce quiz.' });
-        }
-
-        // Calculer le score de chaque participant
-        const results = [];
-        for (const participant of participants) {
-            const score = await calculateScore(participant.id, quizId);
-            results.push({
-                first_name: participant.first_name,
-                last_name: participant.last_name,
- 
-                score
-            });
-        }
-
-        // Répondre avec la liste des participants et leurs scores
-        return res.status(200).json({ participants: results });
-    } catch (error) {
-        console.error('Erreur lors de la récupération des participants et des scores:', error);
-        return res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
-};
+// GET /api/results/quiz/:quizId
 export const getQuizParticipantsTable = async (req, res) => {
     const { quizId } = req.params;
 
@@ -138,17 +111,23 @@ export const getQuizParticipantsTable = async (req, res) => {
     }
 
     try {
-        const participants  = await Result.getQuizParticipantsTable(quizId);
-        return res.status(200).json(participants);
+        // Appel de la fonction du modèle pour récupérer les participants et leurs scores
+        const participants = await Result.getQuizParticipantsTable(quizId);
+
+        if (!participants || participants.length === 0) {
+            return res.status(404).json({ message: 'Aucun participant trouvé pour ce quiz.' });
+        }
+
+        return res.status(200).json(participants); // Renvoie les participants avec leurs scores
     } catch (error) {
-        console.error('Erreur dans getQuizParticipantsTable controller:', error);
-        return res.status(500).json({ message: 'Erreur serveur lors de la récupération des scores.' });
+        console.error('Erreur dans le controller getQuizParticipantsTable:', error);
+        return res.status(500).json({ message: 'Erreur serveur lors de la récupération des résultats du quiz.' });
     }
-};*/
+};
 
 
 // GET /api/results/quiz/:quizId
-export const getQuizParticipantsTable = async (req, res) => {
+/*export const getQuizParticipantsTable = async (req, res) => {
     const { quizId } = req.params;
 
     if (!quizId) {
@@ -172,7 +151,7 @@ export const getQuizParticipantsTable = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-};
+};*/
  const getQuizSuccessRate = async (req, res) => {
     try {
         const { quiz_id } = req.params;
