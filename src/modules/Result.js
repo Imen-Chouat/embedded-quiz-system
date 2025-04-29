@@ -5,7 +5,7 @@ class Result {
     static async getQuizAttendance(quiz_id) {
         try {
             const [rows] = await pool.query(
-                `SELECT COUNT(*) AS attendance FROM Quiz_attempts WHERE quiz_id = ?`,
+                `SELECT COUNT(*) AS attendance FROM quiz_attempts WHERE quiz_id = ?`,
                 [quiz_id]
             );
             return rows[0].attendance;
@@ -34,6 +34,7 @@ class Result {
         }
     }
     
+    
     static async getCompletedQuizzesForStudentInModule(studentId, moduleName) {
         if (!studentId || !moduleName) {
             throw new Error('Student ID and Module Name are required');
@@ -60,6 +61,99 @@ class Result {
             throw new Error('Failed to retrieve completed quizzes for student');
         }
     }
+     static async getQuestionsWithAnswers(quizId) {
+        try {
+            const [quizInfo] = await pool.query(`
+                SELECT title, duration
+                FROM quizzes
+                WHERE id = ?
+            `, [quizId]);
+
+            if (quizInfo.length === 0) {
+                throw new Error('Quiz introuvable');
+            }
+
+            const [questions] = await pool.query(`
+                SELECT id, question_text, duration_minutes
+                FROM questions
+                WHERE quiz_id = ?
+            `, [quizId]);
+
+            const questionsWithAnswers = await Promise.all(
+                questions.map(async (question) => {
+                    const [answers] = await pool.query(`
+                        SELECT id, answer_text
+                        FROM answers
+                        WHERE question_id = ?
+                    `, [question.id]);
+
+                    return {
+
+                        ...question,
+                        answers
+                    };
+                })
+            );
+
+            return {
+                title: quizInfo[0].title,
+                duration: quizInfo[0].duration,
+                questions: questionsWithAnswers
+            };
+        } catch (error) {
+            console.error('Erreur lors de la récupération du quiz:', error);
+            throw new Error('Échec de la récupération du quiz');
+        }
+    }
+    static async saveStudentResponse(studentId, quizId, questionId, answerId) {
+    try {
+        // Vérifie si l'étudiant a déjà répondu à cette question pour ce quiz
+        const [existing] = await pool.query(`
+            SELECT id FROM student_responses
+            WHERE student_id = ? AND question_id = ? AND quiz_id = ?
+        `, [studentId, questionId, quizId]);
+
+        if (existing.length > 0) {
+            // S'il a déjà répondu, on met à jour
+            await pool.query(`
+                UPDATE student_responses
+                SET answer_id = ?
+                WHERE student_id = ? AND question_id = ? AND quiz_id = ?
+            `, [answerId, studentId, questionId, quizId]);
+        } else {
+            // Sinon on insère
+            await pool.query(`
+                INSERT INTO student_responses (student_id, quiz_id, question_id, answer_id)
+                VALUES (?, ?, ?, ?)
+            `, [studentId, quizId, questionId, answerId]);
+        }
+
+        return { message: 'Réponse enregistrée avec succès' };
+    } catch (error) {
+        console.error('Erreur lors de l\'enregistrement de la réponse étudiant:', error);
+        throw new Error('Erreur d\'enregistrement de réponse');
+    }
+}
+
+    static async getQuizCorrection(quizId, studentId) {
+        const [rows] = await db.query(`
+          SELECT 
+            q.id AS question_id,
+            q.question_text,
+            a.id AS answer_id,
+            a.answer_text,
+            a.is_correct,
+            sr.answer_id AS student_answer_id
+          FROM questions q
+          JOIN answers a ON q.id = a.question_id
+          LEFT JOIN student_responses sr ON sr.question_id = q.id AND sr.student_id = ?
+          WHERE q.quiz_id = ?
+          ORDER BY q.id, a.id
+        `, [studentId, quizId]);
+    
+        return rows;
+      }
+    
     
     
     static async  calculateScore(studentId, quizId) {
@@ -107,7 +201,7 @@ class Result {
 }
 
     // Fonction pour obtenir le tableau des étudiants avec leur score dans un quiz donné
- static async getQuizParticipantsTable(quizId) {
+ /*static async getQuizParticipantsTable(quizId) {
         try {
             // Récupérer les étudiants ayant participé au quiz
             const [participants] = await pool.query(`
@@ -139,7 +233,97 @@ class Result {
             console.error('Erreur dans le model Result.getQuizParticipantsWithScores:', error);
             throw error;
         }
-    }
+    }*/
+     /*   static async getQuizParticipantsTable(quizId) {
+            try {
+                // Récupérer les étudiants ayant participé au quiz
+                const [participants] = await pool.query(`
+                    SELECT s.id, s.first_name, s.last_name
+                    FROM students s
+                    JOIN quizparticipants qp ON qp.student_id = s.id
+                    WHERE qp.quiz_id = ?
+                `, [quizId]);
+        
+                if (participants.length === 0) {
+                    return [];
+                }
+        
+                const results = [];
+        
+                for (const student of participants) {
+                    // Compter les réponses correctes de l'étudiant dans ce quiz
+                    const [scoreResult] = await pool.query(`
+                        SELECT COUNT(*) AS score
+                        FROM student_responses sr
+                        JOIN answers a ON sr.answer_id = a.id
+                        JOIN questions q ON a.question_id = q.id
+                        WHERE sr.student_id = ? AND q.quiz_id = ? AND a.is_correct = 1
+                    `, [student.id, quizId]);
+        
+                    const score = scoreResult[0].score;
+        
+                    results.push({
+                        first_name: student.first_name,
+                        last_name: student.last_name,
+                        score
+                    });
+                }
+        
+                return results;
+            } catch (error) {
+                console.error('Erreur dans le model Result.getQuizParticipantsTable:', error);
+                throw error;
+            }
+        }*/
+            static async getQuizParticipantsTable(quizId) {
+                try {
+                    // Étape 1 : récupérer les participants
+                    const [participants] = await pool.query(`
+                        SELECT s.id AS student_id, s.first_name, s.last_name
+                        FROM students s
+                        JOIN quiz_attempts qa ON qa.student_id = s.id
+                        WHERE qa.quiz_id = ?
+                    `, [quizId]);
+            
+                    if (participants.length === 0) return [];
+            
+                    const results = [];
+            
+                    for (const student of participants) {
+                        // Étape 2 : récupérer les bonnes réponses avec leurs grades
+                        const [correctAnswers] = await pool.query(`
+                            SELECT q.grade
+                            FROM student_responses sr
+                            JOIN answers a ON sr.answer_id = a.id
+                            JOIN questions q ON a.question_id = q.id
+                            WHERE sr.student_id = ? AND sr.quiz_id = ? AND a.is_correct = 1
+                        `, [student.student_id, quizId]);
+            
+                        // Calcul du score pondéré
+                        const score = correctAnswers.reduce((sum, row) => sum + row.grade, 0);
+            
+                        // Mise à jour du score dans quiz_attempts
+                        await pool.query(`
+                            UPDATE quiz_attempts
+                            SET score = ?
+                            WHERE student_id = ? AND quiz_id = ?
+                        `, [score, student.student_id, quizId]);
+            
+                        results.push({
+                            first_name: student.first_name,
+                            last_name: student.last_name,
+                            score
+                        });
+                    }
+            
+                    return results;
+                } catch (error) {
+                    console.error('Erreur dans getQuizParticipantsTable:', error);
+                    throw error;
+                }
+            }
+            
+        
     static async getStudentQuizzes(studentId) {
         //try {
             const [quizzes] = await pool.execute(`
@@ -186,7 +370,7 @@ static async getMissedQuizzes(studentId) {
     static async getAverageQuizGrade(quiz_id) {
         try {
             const [rows] = await pool.query(
-                `SELECT AVG(score) AS average_grade FROM Quiz_attempts WHERE quiz_id = ? AND status = 'completed'`,
+                `SELECT AVG(score) AS average_grade FROM quiz_attempts WHERE quiz_id = ? AND status = 'submitted'`,
                 [quiz_id]
             );
             return rows[0].average_grade || 0;
@@ -198,29 +382,49 @@ static async getMissedQuizzes(studentId) {
    
     static async getQuizSuccessRate(quiz_id) {
         try {
+            // Récupérer les questions du quiz et calculer le score maximal
+            const [questions] = await pool.query(
+                `SELECT grade FROM questions WHERE quiz_id = ?`, 
+                [quiz_id]
+            );
+    
+            if (questions.length === 0) {
+                throw new Error('Aucune question trouvée pour ce quiz');
+            }
+    
+            // Calcul du score maximal (somme des scores des questions)
+            const maxScore = questions.reduce((sum, question) => sum + question.grade, 0);
+    
+            // Définir le seuil de réussite (par exemple, 50% du score maximal)
+            const successThreshold = maxScore * 0.5;
+    
+            // Récupérer le nombre total de tentatives complétées
             const [totalRows] = await pool.query(
-                `SELECT COUNT(*) AS total FROM Quiz_attempts WHERE quiz_id = ? AND status = 'completed'`,
+                `SELECT COUNT(*) AS total FROM Quiz_attempts WHERE quiz_id = ? AND status = 'submitted'`, 
                 [quiz_id]
             );
-
+    
+            // Récupérer le nombre de tentatives réussies
             const [successRows] = await pool.query(
-                `SELECT COUNT(*) AS success FROM Quiz_attempts WHERE quiz_id = ? AND status = 'completed' AND score >= 10`,
-                [quiz_id]
+                `SELECT COUNT(*) AS success FROM Quiz_attempts WHERE quiz_id = ? AND status = 'submitted' AND score >= ?`, 
+                [quiz_id, successThreshold]
             );
-
+    
             const total = totalRows[0].total;
             const success = successRows[0].success;
-
+    
             if (total === 0) {
-                return 0; 
+                return 0; // Pas de tentatives complétées
             }
-
+    
+            // Calcul du taux de réussite
             const successRate = (success / total) * 100;
-            return successRate.toFixed(2); 
+            return successRate.toFixed(2); // Retourner avec deux décimales
         } catch (error) {
-            throw new Error('Erreur lors du calcul du pourcentage de réussite.');
+            throw new Error('Erreur lors du calcul du pourcentage de réussite: ' + error.message);
         }
     }
+    
 
     
     static async numberOfchoices(question_id) {
@@ -255,6 +459,4 @@ static async getMissedQuizzes(studentId) {
 
 }
 export default Result;
-
-
 
