@@ -200,82 +200,26 @@ class Result {
     }
 }
 
-    // Fonction pour obtenir le tableau des étudiants avec leur score dans un quiz donné
- /*static async getQuizParticipantsTable(quizId) {
-        try {
-            // Récupérer les étudiants ayant participé au quiz
-            const [participants] = await pool.query(`
-                SELECT s.id, s.first_name, s.last_name
-                FROM students s
-                JOIN QuizParticipants qp ON qp.student_id = s.id
-                WHERE qp.quiz_id = ?
-            `, [quizId]);
+  static async getQuizParticipantsTable(quizId) {
+    try {
+        const [participants] = await pool.query(`
+            SELECT 
+                s.first_name,
+                s.last_name,
+                qa.score
+            FROM students s
+            JOIN quiz_attempts qa ON qa.student_id = s.id
+            WHERE qa.quiz_id = ?
+        `, [quizId]);
 
-            if (participants.length === 0) {
-                return [];
-            }
+        return participants;
+    } catch (error) {
+        console.error('Erreur dans le model Result.getQuizParticipantsTable:', error);
+        throw error;
+    }
+}
 
-            // Calculer le score de chaque participant
-            const results = [];
-
-            for (const student of participants) {
-                const score = await calculateScore(student.id, quizId);
-                results.push({
-                    first_name: student.first_name,
-                    last_name: student.last_name,
-                    
-                    score
-                });
-            }
-
-            return results;
-        } catch (error) {
-            console.error('Erreur dans le model Result.getQuizParticipantsWithScores:', error);
-            throw error;
-        }
-    }*/
-     /*   static async getQuizParticipantsTable(quizId) {
-            try {
-                // Récupérer les étudiants ayant participé au quiz
-                const [participants] = await pool.query(`
-                    SELECT s.id, s.first_name, s.last_name
-                    FROM students s
-                    JOIN quizparticipants qp ON qp.student_id = s.id
-                    WHERE qp.quiz_id = ?
-                `, [quizId]);
-        
-                if (participants.length === 0) {
-                    return [];
-                }
-        
-                const results = [];
-        
-                for (const student of participants) {
-                    // Compter les réponses correctes de l'étudiant dans ce quiz
-                    const [scoreResult] = await pool.query(`
-                        SELECT COUNT(*) AS score
-                        FROM student_responses sr
-                        JOIN answers a ON sr.answer_id = a.id
-                        JOIN questions q ON a.question_id = q.id
-                        WHERE sr.student_id = ? AND q.quiz_id = ? AND a.is_correct = 1
-                    `, [student.id, quizId]);
-        
-                    const score = scoreResult[0].score;
-        
-                    results.push({
-                        first_name: student.first_name,
-                        last_name: student.last_name,
-                        score
-                    });
-                }
-        
-                return results;
-            } catch (error) {
-                console.error('Erreur dans le model Result.getQuizParticipantsTable:', error);
-                throw error;
-            }
-        }*/
-            static async getQuizParticipantsTable(quizId) {
+           /* static async getQuizParticipantsTable(quizId) {
                 try {
                     // Étape 1 : récupérer les participants
                     const [participants] = await pool.query(`
@@ -321,7 +265,7 @@ class Result {
                     console.error('Erreur dans getQuizParticipantsTable:', error);
                     throw error;
                 }
-            }
+            }*/
             
         
     static async getStudentQuizzes(studentId) {
