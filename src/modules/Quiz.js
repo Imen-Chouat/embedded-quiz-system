@@ -1,14 +1,14 @@
-  import mysql from 'mysql2';
+import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 
 class Quiz {
-static async create(teacher_id , module_id , title , timed_by , duration ) {
+static async create(teacher_id , module_id , title , timed_by , duration ,visibility ) {
     
     try {
     
         const [result] = await pool.execute(
-            `INSERT INTO quizzes (teacher_id , module_id , title , timed_by, duration) VALUES (?, ?, ?, ?, ?)`,
-            [teacher_id,  module_id ,title , timed_by, duration]
+            `INSERT INTO quizzes (teacher_id , module_id , title , timed_by, duration , visibility) VALUES (?, ?, ?, ?, ?,?)`,
+            [teacher_id,  module_id ,title , timed_by, duration, visibility ?? 0]
         );
         console.log('Insert result:', result);
         return result.insertId;
@@ -69,7 +69,32 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
             return false;
         }
     }
+    static async update_Module(quizId, moduleName) {
+        try {
+           
+            const [moduleResult] = await pool.execute(
+                `SELECT id FROM modules WHERE  moduleName  = ?`,
+                [moduleName]
+            );
     
+          
+            if (moduleResult.length === 0) {
+                console.log("Module not found!");
+                return false;
+            }
+
+            const moduleId = moduleResult[0].id;
+            const [updateResult] = await pool.execute(
+                `UPDATE quizzes SET module_id = ? WHERE id = ?`,
+                [moduleId, quizId]
+            );
+    
+            return updateResult.affectedRows > 0;
+        } catch (error) {
+            console.error("Error updating quiz:", error);
+            return false;
+        }
+    }
     
     static async update_duration( quizId ,time) {
         try {
@@ -95,6 +120,7 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
             return false;
         }
     }
+    
     static async getRandomizedQuestions(quizId) {
         try {
             const [questions] = await pool.execute(
@@ -131,18 +157,28 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
     static async getAllQuizzesByTeacher(teacherId) {
         try {
             const [quizzes] = await pool.execute(
-                `SELECT q.title, q.created_at, m.moduleName 
+                `SELECT q.title, q.id, q.status, q.created_at, m.moduleName 
                  FROM quizzes q
                  JOIN modules m ON q.module_id = m.id
                  WHERE q.teacher_id = ?`,
                 [teacherId] 
             );
-            return quizzes;
+
+            const formattedQuizzes = quizzes.map(quiz => {
+                const date = new Date(quiz.created_at);
+                return {
+                    ...quiz,
+                    created_at: date.toLocaleString() 
+                };
+            });
+    
+            return formattedQuizzes;
         } catch (error) {
             console.error("Error fetching quizzes by teacher:", error);
             throw error;
         }
     }
+    
     
     static async getDraftQuizzes(teacherId) {
         try {
@@ -371,19 +407,28 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
     static async getQuizzesByModule(teacherId, module_name) {
         try {
             const [quizzes] = await pool.execute(
-                `SELECT q.title, q.created_at ,m.moduleName 
+                `SELECT q.id ,q.title, q.status, q.created_at, m.moduleName 
                  FROM quizzes q
                  JOIN modules m ON q.module_id = m.id
                  WHERE m.moduleName = ? AND q.teacher_id = ?`,
                 [module_name, teacherId]
             );
     
-            return quizzes;
+            const formattedQuizzes = quizzes.map(quiz => {
+                const date = new Date(quiz.created_at);
+                return {
+                    ...quiz,
+                    created_at: date.toLocaleString()
+                };
+            });
+    
+            return formattedQuizzes;
         } catch (error) {
             console.error("Error fetching quizzes by module name and teacher:", error);
             throw error;
         }
     }
+    
     static async getPastQuizzesbymodule(teacherId, module_name) {
         try {
         
@@ -402,9 +447,23 @@ static async create(teacher_id , module_id , title , timed_by , duration ) {
         }
     }
     
+    static async getlevelbymodule(module_id) {
+        try {
+            const [rows] = await pool.execute(
+                `SELECT level_id FROM level_module WHERE module_id = ?`,
+                [module_id]
+            );
     
+            if (rows.length === 0) {
+                throw new Error(`No level found for module_id ${module_id}`);
+            }
     
-
+            return rows[0].level_id; 
+        } catch (error) {
+            throw new Error(`Error in getlevelbymodule: ${error.message}`);
+        }
+    }
+    
 
 }
 export default Quiz ;
