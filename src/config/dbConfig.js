@@ -59,7 +59,8 @@ async function createQuizzesTable() {
                     title VARCHAR(255) NOT NULL,
                     status ENUM('Draft', 'Past') NOT NULL DEFAULT 'Draft' ,
                     timed_by ENUM('quiz','question') NOT NULL,
-                    duration TIME,
+                    duration INT,
+                    visibility Boolean DEFAULT 1 ,
                     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
                     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE 
                 );
@@ -105,10 +106,9 @@ async function createAnswersTable() {
 async function createLevelsTable() {
     try {
         const [results] = await pool.query(`
-            CREATE TABLE IF NOT EXISTS levels 
-            (
+            CREATE TABLE IF NOT EXISTS  levels (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                level_name VARCHAR(50) NOT NULL UNIQUE
+                level_name VARCHAR(50) NOT NULL
             );
         `);
     } catch (error) {
@@ -123,7 +123,6 @@ async function createSectionsTable() {
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 level_id INT,
                 section_name VARCHAR(10),
-                UNIQUE (level_id, section_name),
                 FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE SET NULL
             );
         `);
@@ -140,7 +139,6 @@ async function createStudentGroupsTable() {
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 section_id INT,
                 group_name VARCHAR(10),
-                UNIQUE (section_id, group_name),
                 FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL
             );
         `);
@@ -249,23 +247,6 @@ async function createLevelModule() {
         console.error(error);
     }
 }
-async function createQuizNotificationsTable() {
-    try {
-      const [result] = await pool.query(`
-        CREATE TABLE IF NOT EXISTS quiz_notifications (
-          id INT PRIMARY KEY AUTO_INCREMENT,
-          student_id INT,
-          quiz_id INT,
-          notified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          is_read BOOLEAN NOT NULL DEFAULT FALSE,
-          FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-          FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
-        );
-      `);
-    } catch (error) {
-      console.error('Erreur lors de la création de quiz_notifications :', error);
-    }
-  }
 async function createStudentGroupCsvTable() {
     try {
         await pool.query(`
@@ -298,7 +279,6 @@ async function createStudentGroupCsvTable() {
         await createQuizAttempts();
         await createStudentResponses();
         await createStudentGroupCsvTable();
-        await createQuizNotificationsTable();
     }
     
 createTables();
