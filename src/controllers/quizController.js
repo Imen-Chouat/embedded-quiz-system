@@ -5,31 +5,25 @@ import pool from "../config/dbConfig.js";
 import fs from "fs";
 import csv from "csv-parser";
 import multer from "multer";
-import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
-import OpenAI from "openai";
 import Question from '../modules/Question.js';
 import Answer from '../modules/Answer.js';
-import authTeacherMiddleware from '../middlewares/authMiddleware.js';
-
-
-
 
 const createQuiz = async (req, res) => {
     try {
         const teacher_id = req.teacher.id;
-        const { title, module, timed_by, duration, studentEmails,levelName , sectionNames , groupNames  } = req.body;
+        const { title, module, timed_by, duration,questionVisibility } = req.body;
         const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9]):([0-5]?[0-9])$/;
         
         if (timed_by === 'quiz' && !timeRegex.test(duration)) {
-            return res.status(400).json({ message: "Invalid duration format. Use 'HH:MM:SS'." });
+            return res.status(401).json({ message: "Invalid duration format. Use 'HH:MM:SS'." });
         }
         const [moduleRows] = await pool.execute(
             `SELECT id FROM modules WHERE moduleName = ?`,
             [module]
         );
         if (moduleRows.length === 0) {
-            return res.status(400).json({ message: "Module not found." });
+            return res.status(404).json({ message: "Module not found." });
         }
 
         const module_id = moduleRows[0].id;
@@ -52,7 +46,7 @@ const createQuiz = async (req, res) => {
         } else {
             return res.status(400).json({ message: "Invalid timed_by value. Must be 'quiz' or 'question'." });
         }
-        const quizId = await Quiz.create(teacher_id, module_id, title, timed_by, quizDuration);
+        const quizId = await Quiz.create(teacher_id, module_id, title, timed_by, quizDuration, questionVisibility);
         const quiz = await Quiz.findById(quizId);
         return res.status(201).json({ quiz });
 
@@ -533,6 +527,21 @@ const ALLQuizzesbymodule= async (req, res) => {
         return res.status(500).json({ message: "Failed to fetch quizzes by module." });
     }
 };
+const Getlevel= async (req, res) => {
+    try {
+        const teacherId = req.teacher.id;
+        const { module_id } = req.body;
+        if (!module_id) {
+            return res.status(400).json({ message: "Module name is required" });
+        }
+        const level = await Quiz.getlevelbymodule(module_id);
+
+        return res.status(200).json({"level_id" :level });
+    } catch (error) {
+        console.error("Error in getlevelByModule:", error);
+        return res.status(500).json({ message: "Failed to fetch quizzes by module." });
+    }
+};
 
 const Draft_Quizzesbymodule = async (req, res) => {
     try {
@@ -599,18 +608,57 @@ const SeeDraftQuiz = async (req ,res )=>{
                 return { question, answers };
             })
         );
-        return res.status(200).json({message:'successfully returned the draft quiz info',quiz: {
+        return res.status(200).json({message:'successfully returned the draft quiz info',draft: {
             quiz, questionNanswers
         }});
     } catch (error) {
         return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
     }
 }; 
+const getQuizquestion = async (req, res) => {
+    const { quizId } = req.params;
 
+    if (!quizId || isNaN(quizId)) {
+        return res.status(400).json({ error: "quizId invalide." });
+    }
 
+    const connection = await pool.getConnection();
+    try {
+        const [questions] = await connection.query(
+            "SELECT id, question_text FROM questions WHERE quiz_id = ?",
+            [quizId]
+        );
 
+        if (questions.length === 0) {
+            return res.status(404).json({ error: "Aucune question trouvée." });
+        }
 
+        const quiz = [];
 
+        for (const question of questions) {
+            const [answers] = await connection.query(
+                "SELECT id, answer_text FROM answers WHERE question_id = ?",
+                [question.id]
+            );
+
+            quiz.push({
+                questionId: question.id,
+                questionText: question.question_text,
+                options: answers.map(a => ({
+                    answerId: a.id,
+                    answerText: a.answer_text
+                }))
+            });
+        }
+
+        res.json({ quiz });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur serveur." });
+    } finally {
+        connection.release();
+    }
+};
 export default {
     createQuiz,
     deleteQuiz,
@@ -633,6 +681,7 @@ export default {
     startQuizbyteach ,
     SeeDraftQuiz ,
     update_Module ,
-    
-    getQuizDuration
+    getQuizDuration ,
+    getQuizquestion ,
+    Getlevel
 } ; 
