@@ -615,50 +615,7 @@ const SeeDraftQuiz = async (req ,res )=>{
         return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
     }
 }; 
-const getQuizquestion = async (req, res) => {
-    const { quizId } = req.params;
 
-    if (!quizId || isNaN(quizId)) {
-        return res.status(400).json({ error: "quizId invalide." });
-    }
-
-    const connection = await pool.getConnection();
-    try {
-        const [questions] = await connection.query(
-            "SELECT id, question_text FROM questions WHERE quiz_id = ?",
-            [quizId]
-        );
-
-        if (questions.length === 0) {
-            return res.status(404).json({ error: "Aucune question trouvée." });
-        }
-
-        const quiz = [];
-
-        for (const question of questions) {
-            const [answers] = await connection.query(
-                "SELECT id, answer_text FROM answers WHERE question_id = ?",
-                [question.id]
-            );
-
-            quiz.push({
-                questionId: question.id,
-                questionText: question.question_text,
-                options: answers.map(a => ({
-                    answerId: a.id,
-                    answerText: a.answer_text
-                }))
-            });
-        }
-
-        res.json({ quiz });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Erreur serveur." });
-    } finally {
-        connection.release();
-    }
-};
 export default {
     createQuiz,
     deleteQuiz,
@@ -682,6 +639,5 @@ export default {
     SeeDraftQuiz ,
     update_Module ,
     getQuizDuration ,
-    getQuizquestion ,
     Getlevel
 } ; 
