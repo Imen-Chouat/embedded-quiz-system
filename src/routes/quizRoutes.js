@@ -41,6 +41,7 @@ router.post("/seeDraftquiz",quizController.SeeDraftQuiz);
 router.get("/randomize/:quizId", quizController.randomazation);
 router.get("/getQuizDuration/:quizId", quizController.getQuizDuration);
 router.get("/getlevel",authTeacherMiddleware, quizController.Getlevel);
+router.get("/getModuleNameById",quizController.getModuleNameById);
 
 
 export default router;
