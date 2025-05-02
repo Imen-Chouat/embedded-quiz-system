@@ -5,7 +5,6 @@ import pool from "../config/dbConfig.js";
 import fs from "fs";
 import csv from "csv-parser";
 import multer from "multer";
-import mammoth from "mammoth";
 import Question from '../modules/Question.js';
 import Answer from '../modules/Answer.js';
 
