@@ -15,7 +15,7 @@ router.post('/quizQuestionChoicePercentage',authTeacherMiddleware,resultControll
 router.post('/quizQuestionSuccessRate',authTeacherMiddleware,resultControllers.questionSuccessRate);
 router.get('/:studentId/quizzes', resultControllers.getStudentQuizzes);
 router.get('/:studentId/module/:moduleId/completed-quizzes', resultControllers.getCompletedQuizzesForStudentInModule);
-router.get('/quiz/:quizId/questions', resultControllers.getQuizQuestionsWithAnswers);
+router.get('/quiz/:quizId/questions', resultControllers.getQuestionsWithAnswers);
 router.get('/quiz-correction/:quizId/:studentId', resultControllers.getQuizCorrection);
 router.post('/student/response', resultControllers.saveStudentResponse);
 export default router;
