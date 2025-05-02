@@ -123,7 +123,22 @@ const ALLQuizzes2 = async (req, res) => {
     }
 };
 
+const getModuleNameById = async (req, res) => {
+    try {
+        const { module_id } = req.body;
 
+        const [rows] = await pool.query(SELECT moduleName FROM modules WHERE id = ?, [module_id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Module not found" });
+        }
+
+        res.status(200).json({ moduleName: rows[0].moduleName });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 const Draft_Quizzes = async (req, res) => {
     try {
         const teacherId = req.teacher.id; 
@@ -663,5 +678,6 @@ export default {
     SeeDraftQuiz ,
     update_Module ,
     getQuizDuration ,
-    Getlevel
+    Getlevel ,
+    getModuleNameById
 } ; 
