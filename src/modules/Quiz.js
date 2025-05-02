@@ -55,7 +55,13 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             return [];
         }
     }
-    
+    static async update_visibility(id, visibility) {
+        const [results] = await pool.query(
+            `UPDATE quizzes SET visibility = ? WHERE id = ?`,
+            [visibility ? 1 : 0, id]
+        );
+        return results.affectedRows > 0;
+    }
 // hadou te3 update 
     static async update_Title( quizId ,title) {
         try {
