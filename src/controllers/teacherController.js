@@ -450,7 +450,34 @@ const getTeacherClasses = async (req, res) => {
       return res.status(500).json({ message: "Error in fetching modules." });
     }
   };
-
+  const getLevelGroups = async (req,res) => {
+    try {
+        const {level_name} = req.body;
+        const [levels] = await pool.execute(`SELECT * FROM levels WHERE level_name = ?`,[level_name]);
+        if(levels.length == 0) return res.status(404).json({message:"no level found"});
+        const level = levels[0];
+        const [sections] = await pool.query(`
+        SELECT s.id AS section_id, s.section_name
+        FROM sections s
+        WHERE s.level_id = ?
+        `, [level.id]);   
+        let groups = [];
+        for (const section of sections) {
+            const [group] = await pool.query(`
+                SELECT g.id AS group_id, g.group_name
+                FROM student_groups g
+                WHERE g.section_id = ?
+            `, [section.section_id]);
+            groups.push(...group.map(g => ({
+                group_id: g.group_id,
+                group_name: g.group_name
+            })));
+        }
+        return res.status(200).json({message:"fetched the groups successfully!",groups});
+    } catch (error) {
+        return res.status(500).json({ message: "Error in fetching modules." });
+    }
+  }
   
   
 
@@ -473,6 +500,7 @@ export default {
     getTeachermodules ,
     getFirstName ,
     getLastName ,
-    getEmail
+    getEmail,
+    getLevelGroups
 
 };
