@@ -55,6 +55,32 @@ const createQuiz = async (req, res) => {
         return res.status(500).json({ message: "Failed to create quiz. Please try again later." });
     }
 };
+export const startQuizmob = async (req, res) => {
+    try {
+        const { student_id, quiz_id } = req.params;
+
+        if (!student_id || !quiz_id) {
+            return res.status(400).json({ error: "student_id et quiz_id sont requis." });
+        }
+
+        const result = await Quiz.startQuizmob(Number(student_id), Number(quiz_id));
+        res.json(result);
+    } catch (error) {
+        console.error("Erreur dans startQuiz controller:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+export const submitQuiz = async (req, res) => {
+    const { studentId, quizId } = req.body;
+
+    try {
+        const result = await Quiz.submitQuiz(studentId, quizId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Erreur lors de la soumission du quiz :', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la soumission du quiz.' });
+    }
+};
 
 
 const deleteQuiz = async (req, res) => {
@@ -631,9 +657,8 @@ export default {
     update_timedby ,
     addquizparticipants,
     randomazation ,
-    autoSubmitQuiz,
-    submitQuizManually,
-    startQuizstudent , 
+    submitQuiz,
+    startQuizmob , 
     importQuiz ,
     startQuizbyteach ,
     SeeDraftQuiz ,
