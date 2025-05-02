@@ -1,5 +1,6 @@
 import Result from '../modules/Result.js';
 import Answer from '../modules/answer.js';
+import Question from '../modules/Question.js';
  const getQuizAttendance = async (req, res) => {
     try {
         const { quiz_id } = req.params;
@@ -100,9 +101,36 @@ const calculateScore = async (req, res) => {
         return res.status(500).json({ message: 'Erreur interne du serveur' });
     }
 };
+/*const getQuizParticipantsTable = async (req, res) => {
+    const { quizId } = req.params;
 
+    try {
+        // Récupérer tous les étudiants ayant participé à ce quiz
+        const participants = await Result.getQuizParticipantsTable(quizId); // Utiliser le modèle approprié pour récupérer les participants
 
-// GET /api/results/quiz/:quizId
+        if (participants.length === 0) {
+            return res.status(404).json({ message: 'Aucun étudiant n\'a participé à ce quiz.' });
+        }
+
+        // Calculer le score de chaque participant
+        const results = [];
+        for (const participant of participants) {
+            const score = await calculateScore(participant.id, quizId);
+            results.push({
+                first_name: participant.first_name,
+                last_name: participant.last_name,
+ 
+                score
+            });
+        }
+
+        // Répondre avec la liste des participants et leurs scores
+        return res.status(200).json({ participants: results });
+    } catch (error) {
+        console.error('Erreur lors de la récupération des participants et des scores:', error);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+    }
+};
 export const getQuizParticipantsTable = async (req, res) => {
     const { quizId } = req.params;
 
@@ -111,23 +139,17 @@ export const getQuizParticipantsTable = async (req, res) => {
     }
 
     try {
-        // Appel de la fonction du modèle pour récupérer les participants et leurs scores
-        const participants = await Result.getQuizParticipantsTable(quizId);
-
-        if (!participants || participants.length === 0) {
-            return res.status(404).json({ message: 'Aucun participant trouvé pour ce quiz.' });
-        }
-
-        return res.status(200).json(participants); // Renvoie les participants avec leurs scores
+        const participants  = await Result.getQuizParticipantsTable(quizId);
+        return res.status(200).json(participants);
     } catch (error) {
-        console.error('Erreur dans le controller getQuizParticipantsTable:', error);
-        return res.status(500).json({ message: 'Erreur serveur lors de la récupération des résultats du quiz.' });
+        console.error('Erreur dans getQuizParticipantsTable controller:', error);
+        return res.status(500).json({ message: 'Erreur serveur lors de la récupération des scores.' });
     }
-};
+};*/
 
 
 // GET /api/results/quiz/:quizId
-/*export const getQuizParticipantsTable = async (req, res) => {
+export const getQuizParticipantsTable = async (req, res) => {
     const { quizId } = req.params;
 
     if (!quizId) {
@@ -151,7 +173,7 @@ export const getQuizParticipantsTable = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-};*/
+};
  const getQuizSuccessRate = async (req, res) => {
     try {
         const { quiz_id } = req.params;
@@ -175,11 +197,11 @@ export const getQuizParticipantsTable = async (req, res) => {
         res.status(500).json({ message:'error finding the choices percentage'});
     }
 };
-export const getQuizQuestionsWithAnswers = async (req, res) => {
+export const getQuestionsWithAnswers = async (req, res) => {
     const { quizId } = req.params;
 
     try {
-        const quizDetails = await Result.getQuizQuestionsWithAnswers(quizId);
+        const quizDetails = await Result.getQuestionsWithAnswers(quizId);
         res.status(200).json(quizDetails);
     } catch (error) {
         console.error('Erreur lors de la récupération des questions et réponses du quiz:', error);
@@ -189,46 +211,70 @@ export const getQuizQuestionsWithAnswers = async (req, res) => {
 export const saveStudentResponse = async (req, res) => {
     const { studentId, quizId, questionId, answerId } = req.body;
 
+    // Vérification des champs requis
+    if (!studentId || !quizId || !questionId || !answerId) {
+        return res.status(400).json({ message: 'Tous les champs sont requis : studentId, quizId, questionId, answerId.' });
+    }
+
     try {
         const result = await StudentResponseModel.saveStudentResponse(studentId, quizId, questionId, answerId);
         res.status(200).json(result);
     } catch (error) {
-        console.error('Erreur en enregistrant la réponse:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de l\'enregistrement de la réponse' });
+        console.error('Erreur en enregistrant la réponse de l\'étudiant:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de l\'enregistrement de la réponse.' });
     }
 };
-
-export const getQuizCorrection = async (req, res) => {
-    try {
-      const { quiz_id, student_id } = req.body;
+function groupQuizCorrectionData(rows) {
+    const grouped = {};
   
-      let questions = await Question.getQuizQuestions(quiz_id);
-      if (questions.length === 0) {
-        return res.status(401).json({ message: "No questions for this quiz." });
+    // Regroupement des réponses par question
+    for (const row of rows) {
+      const {
+        question_id,
+        question_text,
+        answer_id,
+        answer_text,
+        is_correct,
+        student_answer_id
+      } = row;
+  
+      if (!grouped[question_id]) {
+        grouped[question_id] = {
+          question_id,
+          question_text,
+          student_answer_id,
+          answers: []
+        };
       }
   
-      let quizCorrection = [];
-      for (const question of questions) {
-        let answers = await Answer.getAnswersByQuestionId(question.id);
-        let studentResponse = await StudentResponse.getStudentAnswer(student_id, question.id);
-  
-        quizCorrection.push({
-          question: question,
-          answers: answers,
-          studentSelectedAnswerId: studentResponse ? studentResponse.answer_id : null,
-        });
-      }
-  
-      return res.status(200).json({
-        message: "Successfully fetched quiz correction.",
-        quizCorrection,
+      grouped[question_id].answers.push({
+        answer_id,
+        answer_text,
+        is_correct
       });
+    }
+  
+    return Object.values(grouped); // retourne un tableau des questions regroupées
+  }
+  
+
+  export const getQuizCorrection = async (req, res) => {
+    try {
+      const { quizId, studentId } = req.params;
+  
+      // Récupérer les réponses du quiz pour l'étudiant
+      const rows = await Result.getQuizCorrection(quizId, studentId);
+  
+      // Regrouper les données par question
+      const grouped = groupQuizCorrectionData(rows);
+  
+      // Retourner les données formatées au frontend
+      res.json(grouped);
     } catch (error) {
       console.error('Error in getQuizCorrection:', error);
-      res.status(500).json({ message: "Server error while fetching quiz correction." });
+      res.status(500).json({ error: error.message });
     }
   };
-
 export const questionSuccessRate = async (req,res) => {
     try {
         const {quiz_id} = req.body ;
@@ -259,7 +305,7 @@ export default {
     getStudentCompletedQuizzes,
     getStudentQuizzes,
     getCompletedQuizzesForStudentInModule,
-    getQuizQuestionsWithAnswers,
+    getQuestionsWithAnswers,
     getQuizCorrection,
     getStudentMissedQuizzes,
     saveStudentResponse
