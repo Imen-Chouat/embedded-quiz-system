@@ -251,84 +251,93 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
     }
 
     
-    static async submitQuizManually(studentId, quizId, responses) {
-        try {
-            await pool.query("START TRANSACTION");
-    
-            for (const response of responses) {
-                const { questionId, answerId, isCorrect } = response;
-                await pool.execute(
-                    `INSERT INTO student_responses (student_id, quiz_id, question_id, answer_id, is_correct )
-                     VALUES (?, ?, ?, ?, ? )`,
-                    [studentId, quizId, questionId, answerId, isCorrect]
-                );
+   static async submitQuiz(studentId, quizId) {
+    try {
+        // Vérifie si l'étudiant a déjà soumis ce quiz
+        const [existingSubmission] = await pool.query(`
+            SELECT id, status FROM quiz_attempts
+            WHERE student_id = ? AND quiz_id = ?
+        `, [studentId, quizId]);
+
+        // Récupère les réponses de l'étudiant
+        const [responses] = await pool.query(`
+            SELECT is_correct
+            FROM student_responses
+            WHERE student_id = ? AND quiz_id = ?
+        `, [studentId, quizId]);
+
+        const totalQuestions = responses.length;
+        const correctAnswers = responses.filter(r => r.is_correct === 1).length;
+        const score = totalQuestions > 0
+            ? parseFloat(((correctAnswers / totalQuestions) * 20).toFixed(2))
+            : 0;
+
+        if (existingSubmission.length > 0) {
+            if (existingSubmission[0].status === 'submitted') {
+                return { message: 'Quiz déjà soumis.', score };
             }
-    
-            const [scoreResult] = await pool.execute(
-                `SELECT COUNT(*) AS score
-                 FROM student_responses
-                 WHERE student_id = ? AND quiz_id = ? AND is_correct = 1`,
-                [studentId, quizId]
+
+            // Mise à jour de la tentative existante
+            await pool.query(`
+                UPDATE quiz_attempts
+                SET status = 'submitted', end_time = NOW(), score = ?
+                WHERE student_id = ? AND quiz_id = ?
+            `, [score, studentId, quizId]);
+        } else {
+            // Nouvelle tentative si aucune n'existait
+            await pool.query(`
+                INSERT INTO quiz_attempts (student_id, quiz_id, start_time, end_time, status, score)
+                VALUES (?, ?, NOW(), NOW(), 'submitted', ?)
+            `, [studentId, quizId, score]);
+        }
+
+        return {
+            message: 'Quiz soumis avec succès.',
+            scoreSur10: score,
+            totalQuestions,
+            bonnesReponses: correctAnswers
+        };
+    } catch (error) {
+        console.error('Erreur lors de la soumission du quiz:', error);
+        throw new Error('Erreur lors de la soumission du quiz.');
+    }
+}
+
+
+
+
+    static async calculateTotalDuration(quizId) {
+        try {
+            const [questions] = await pool.execute(
+                `SELECT duration_minutes FROM questions WHERE quiz_id = ?`,
+                [quizId]
             );
-            const score = scoreResult[0].score;
-    
-            await pool.execute(
-                `UPDATE quiz_attempts
-                 SET end_time = NOW(), status = 'submitted', score = ?
-                 WHERE student_id = ? AND quiz_id = ?`,
-                [score, studentId, quizId]
+
+            const totalSeconds = questions.reduce(
+                (total, question) => total + question.duration_minutes,
+                0
             );
+            const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
     
-            await pool.query("COMMIT");
-    
-            return { message: "Quiz submitted successfully.", score };
+            return `${hours}:${minutes}:${seconds}`;
         } catch (error) {
-            await pool.query("ROLLBACK");
-            console.error("Error submitting quiz manually:", error);
+            console.error("Error calculating total duration:", error);
             throw error;
         }
     }
     
-    static async autoSubmitQuiz(studentId, quizId) {
+    
+    static async updateQuizDuration(quizId, totalDuration) {
         try {
-            const [attempt] = await pool.execute(
-                `SELECT q.created_at, q.duration, qa.status
-                 FROM quiz_attempts qa
-                 JOIN quizzes q ON qa.quiz_id = q.id
-                 WHERE qa.student_id = ? AND qa.quiz_id = ?`,
-                [studentId, quizId]
+            
+            await pool.execute(
+                `UPDATE quizzes SET duration = ? WHERE id = ?`,
+                [totalDuration, quizId]
             );
-    
-            if (attempt.length === 0) {
-                throw new Error("No active quiz attempt found.");
-            }
-    
-            const { created_at, duration, status } = attempt[0];
-            if (status === "submitted") {
-                console.log(`Quiz ${quizId} was already submitted manually.`);
-                return "already_submitted";
-            }
-
-            const [hours, minutes, seconds] = duration.split(":").map(Number);
-            const durationMs = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
-
-            const endTime = new Date(new Date(created_at.getTime() + durationMs));
-            const currentTime = new Date();
-            if (currentTime >= endTime) {
-                await this.finalizeQuizSubmission(studentId, quizId);
-                console.log(`Quiz ${quizId} automatically submitted for student ${studentId}.`);
-                return "submitted_now";
-            }
-    
-           
-            setTimeout(async () => {
-                await this.finalizeQuizSubmission(studentId, quizId);
-                console.log(`Quiz ${quizId} automatically submitted for student ${studentId}.`);
-            }, endTime - currentTime);
-    
-            return "scheduled";
         } catch (error) {
-            console.error("Error scheduling auto-submission:", error);
+            console.error("Error updating quiz duration:", error);
             throw error;
         }
     }
@@ -353,6 +362,71 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw error;
         }
     }
+    static async startQuizmob(studentId, quizId) {
+        try {
+            const [quizData] = await pool.execute(`
+                SELECT created_at, duration, visibility, timed_by
+                FROM quizzes
+                WHERE id = ?
+            `, [quizId]);
+    
+            if (quizData.length === 0) {
+                throw new Error("Quiz introuvable.");
+            }
+    
+            const { created_at, duration, visibility, timed_by } = quizData[0];
+    
+            // Convertit HH:MM:SS vers millisecondes
+            const [hours, minutes, seconds] = duration.split(":").map(Number);
+            const durationMs = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
+            const endTime = new Date(new Date(created_at).getTime() + durationMs);
+            const now = new Date();
+    
+            if (now > endTime) {
+                throw new Error("Temps du quiz écoulé.");
+            }
+    
+            // Vérifie et insère dans quiz_participants si nécessaire
+            const [participant] = await pool.execute(`
+                SELECT id FROM quiz_participants
+                WHERE student_id = ? AND quiz_id = ?
+            `, [studentId, quizId]);
+    
+            if (participant.length === 0) {
+                await pool.execute(`
+                    INSERT INTO quiz_participants (student_id, quiz_id)
+                    VALUES (?, ?)
+                `, [studentId, quizId]);
+            }
+    
+            // Vérifie ou crée une tentative
+            const [existing] = await pool.execute(`
+                SELECT id FROM quiz_attempts
+                WHERE student_id = ? AND quiz_id = ?
+            `, [studentId, quizId]);
+    
+            let attemptId;
+            if (existing.length > 0) {
+                attemptId = existing[0].id;
+            } else {
+                const [result] = await pool.execute(`
+                    INSERT INTO quiz_attempts (student_id, quiz_id, start_time, status)
+                    VALUES (?, ?, NOW(), 'inprogress')
+                `, [studentId, quizId]);
+                attemptId = result.insertId;
+            }
+    
+            return {
+                attemptId,
+                visibility,
+                timed_by // 👈 Ajouté ici
+            };
+        } catch (error) {
+            console.error("Erreur lors du démarrage du quiz:", error);
+            throw new Error("Erreur lors du démarrage du quiz.");
+        }
+    }
+    
     
     
     static async updateQuizDuration(quizId, totalDuration) {
