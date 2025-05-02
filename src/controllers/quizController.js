@@ -168,6 +168,33 @@ const Past_Quizzes = async (req, res) => {
         return res.status(500).json({ message: "Failed to fetch Past quizzes ." });
     }
 };
+const update_visibility = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { visibility } = req.body;
+        const teacherId = req.teacher.id; 
+
+        const quiz = await Quiz.findById(id);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found." });
+        }
+
+        if (quiz.teacher_id !== teacherId) {
+            return res.status(403).json({ message: "Unauthorized. You can only update your own quizzes." });
+        }
+
+        const isUpdated = await Quiz.update_visibility(id, visibility);
+        if (isUpdated) {
+            const updatedQuiz = await Quiz.findById(id);
+            return res.status(200).json({ message: "Visibility updated successfully.", quiz: updatedQuiz });
+        }
+
+        return res.status(400).json({ message: "Visibility update failed." });
+    } catch (error) {
+        console.error("Error updating quiz visibility:", error);
+        return res.status(500).json({ message: "Failed to update visibility. Please try again later." });
+    }
+};
 
 const update_title = async (req, res) => {
     try {
@@ -679,5 +706,6 @@ export default {
     update_Module ,
     getQuizDuration ,
     Getlevel ,
-    getModuleNameById
+    getModuleNameById,
+    update_visibility
 } ; 
