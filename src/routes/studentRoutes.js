@@ -1,6 +1,7 @@
 import express from 'express';
 import studentControllers from '../controllers/studentController.js';
 import authenticateStudent from '../middlewares/authMiddleware.js';
+import authController from '../controllers/authController.js';
 const router = express.Router();
 
 
@@ -12,6 +13,9 @@ router.patch('/modify_LastName',authenticateStudent ,studentControllers.modify_L
 router.patch('/modify_FirstName',authenticateStudent ,studentControllers.modify_FirstName );
 router.patch('/modify_password',authenticateStudent ,studentControllers.modify_password );
 router.patch('/modify_group',authenticateStudent ,studentControllers.updateStudentGroup  );
-router.get('/reviewQuiz',authenticateStudent ,studentControllers.reviewQuiz );
+router.post('/reviewQuiz',authenticateStudent ,studentControllers.reviewQuiz );
+router.post('/getstudentbygroup' ,studentControllers.getstudentbygroup );
+router.get('/GetStudentInfo',authenticateStudent ,studentControllers.GetStudentInfo);
+router.post('/logout',authenticateStudent,authController.logoutStudent);
 
 export default router;
