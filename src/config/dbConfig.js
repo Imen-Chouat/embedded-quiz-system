@@ -61,6 +61,7 @@ async function createQuizzesTable() {
                     timed_by ENUM('quiz','question') NOT NULL,
                     duration TIME,
                     visibility Boolean DEFAULT 1 ,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
                     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE 
                 );
