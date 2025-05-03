@@ -644,19 +644,49 @@ const startQuizbyteach = async (req, res) => {
     try {
         const teacherId = req.teacher.id;
         const { quizId } = req.body;
-    
-        const [quiz] = await pool.query(`SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`, [quizId, teacherId]);
+
+       
+        const [quiz] = await pool.query(
+            `SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`,
+            [quizId, teacherId]
+        );
         if (quiz.length === 0) {
-            return res.status(404).json({ message: "Quiz not found or you don't have permission." });
-        }
-        if (quiz[0].status === "Past") {
-            return res.status(400).json({ message: "Quiz has already been started." });
+            return res.status(404).json({ message: "Quiz not found or unauthorized." });
         }
 
-        await pool.query(`UPDATE quizzes SET status = 'Past', created_at = NOW() WHERE id = ?`, [quizId]);
-    
-        return res.status(200).json({ message: "Quiz started successfully." });
-    
+     
+        if (quiz[0].status !== "Draft") {
+            return res.status(400).json({ message: "Quiz is already active or ended." });
+        }
+
+      
+        const [participants] = await pool.query(
+            `SELECT student_id FROM quizparticipants WHERE quiz_id = ?`,
+            [quizId]
+        );
+        if (participants.length === 0) {
+            return res.status(400).json({ message: "No students assigned to this quiz." });
+        }
+
+     
+        await pool.query(
+            `UPDATE quizzes SET status = 'Past', created_at = NOW() WHERE id = ?`,
+            [quizId]
+        );
+
+        const [assignedStudents] = await pool.query(
+            `SELECT DISTINCT s.id,s.first_name,s.last_name, s.email
+             FROM quizparticipants qp
+             JOIN students s ON qp.student_id = s.id
+             WHERE qp.quiz_id = ?`,
+            [quizId]
+        );
+
+        return res.status(200).json({
+            message: "Quiz started successfully.",
+            assignedStudents: assignedStudents
+        });
+
     } catch (error) {
         console.error("Error starting quiz:", error);
         return res.status(500).json({ message: "Failed to start quiz." });
