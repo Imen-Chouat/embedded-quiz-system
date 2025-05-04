@@ -17,8 +17,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
         throw new Error("Failed to create quiz. Please try again later.");
     }
 }
-
-
     static async delete(quizId) {
         try {
             const [result] = await pool.execute(`DELETE FROM quizzes WHERE id = ?`, [quizId]);
@@ -28,9 +26,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             return false;
         }
     }
-
-    
-
     static async findById(quizId) {
         try {
             const [quiz] = await pool.execute(`SELECT * FROM quizzes WHERE id = ?`, [quizId]);
@@ -179,8 +174,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw error;
         }
     }
-    
-    
     static async getDraftQuizzes(teacherId) {
         try {
             const [quizzes] = await pool.execute(
@@ -188,7 +181,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
              FROM quizzes q
              JOIN modules m ON q.module_id = m.id
              WHERE q.teacher_id = ? AND q.status = 'Draft'`,
-                 
                 [teacherId]
             );
             return quizzes;
@@ -204,7 +196,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
              FROM quizzes q
              JOIN modules m ON q.module_id = m.id
              WHERE q.teacher_id = ? AND q.status = 'Past'`,
-                 
                 [ teacherId]
             );
             return quizzes;
@@ -222,22 +213,18 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
         if (quizData.length === 0) {
             throw new Error("Quiz not found.");
         }
-    
         const { created_at, duration } = quizData[0];
         const [hours, minutes, seconds] = duration.split(":").map(Number);
         const durationMs = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
         const endTime = new Date(new Date(created_at).getTime() + durationMs);
         const now = new Date();
-    
         if (now > endTime) {
             throw new Error("Quiz time is over.");
         }
-
         const [existing] = await pool.execute(
             `SELECT id FROM quiz_attempts WHERE student_id = ? AND quiz_id = ?`,
             [studentId, quizId]
         );
-    
         if (existing.length > 0) {
             return existing[0].id; 
         }
@@ -249,8 +236,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
     
         return result.insertId;
     }
-
-    
    static async submitQuiz(studentId, quizId) {
     try {
         // Vérifie si l'étudiant a déjà soumis ce quiz
@@ -332,8 +317,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             }
     
             const { created_at, duration, visibility, timed_by } = quizData[0];
-    
-            // Convertit HH:MM:SS vers millisecondes
             const [hours, minutes, seconds] = duration.split(":").map(Number);
             const durationMs = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
             const endTime = new Date(new Date(created_at).getTime() + durationMs);
@@ -474,7 +457,5 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw new Error(`Error in getlevelbymodule: ${error.message}`);
         }
     }
-    
-
 }
 export default Quiz ;
