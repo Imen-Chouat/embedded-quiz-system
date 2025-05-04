@@ -1,13 +1,13 @@
 import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 
-static async createQuestion({ quiz_id, question_text, duration_minutes, grade }) {
+    static async createQuestion({ quiz_id, question_text, duration_seconds, grade }) {
         try {
             const [result] = await pool.execute(
                 'INSERT INTO questions (quiz_id, question_text, duration_minutes, grade) VALUES (?, ?, ?, ?)',
-                [quiz_id, question_text, duration_minutes|| 0, grade || 1]
+                [quiz_id, question_text, duration_seconds || null, grade || 1]
             );
-            return { id: result.insertId, quiz_id, question_text, duration_minutes, grade };
+            return { id: result.insertId, message: "Question added successfully" };
         } catch (error) {
             throw new Error(`Error while adding a question: ${error.message}`);
         }
