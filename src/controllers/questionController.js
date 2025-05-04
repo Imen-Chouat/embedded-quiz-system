@@ -4,7 +4,7 @@ import Quiz from '../modules/Quiz.js';
 // Ajouter une question
  const createQuestion = async (req, res) => {
     try {
-        const { quiz_id, question_text, duration_minutes, grade } = req.body;
+        const { quiz_id, question_text, duration_secondes, grade } = req.body;
         if (!quiz_id || !question_text) return res.status(400).json({ error: "Missing required fields" });
 
         const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_minutes, grade });
