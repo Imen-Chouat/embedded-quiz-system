@@ -1,15 +1,13 @@
 import mysql from 'mysql2';
 import pool from '../config/dbConfig.js';
 
-class Question {
-    // syrine: Cette méthode permet d'ajouter une question à un quiz donné.
-    static async createQuestion({ quiz_id, question_text, duration_seconds, grade }) {
+static async createQuestion({ quiz_id, question_text, duration_minutes, grade }) {
         try {
             const [result] = await pool.execute(
-                'INSERT INTO questions (quiz_id, question_text, duration_seconds, grade) VALUES (?, ?, ?, ?)',
-                [quiz_id, question_text, duration_seconds || null, grade || 1]
+                'INSERT INTO questions (quiz_id, question_text, duration_minutes, grade) VALUES (?, ?, ?, ?)',
+                [quiz_id, question_text, duration_minutes|| 0, grade || 1]
             );
-            return { id: result.insertId, message: "Question added successfully" };
+            return { id: result.insertId, quiz_id, question_text, duration_minutes, grade };
         } catch (error) {
             throw new Error(`Error while adding a question: ${error.message}`);
         }
