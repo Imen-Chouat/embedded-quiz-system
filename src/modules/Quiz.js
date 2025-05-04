@@ -45,7 +45,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             return null;
         }
     }
-// kamel les quiz les creeahom teacher 
     static async findByTeacherId(teacherId) {
         try {
             const [quizzes] = await pool.execute(`SELECT * FROM quizzes WHERE teacher_id = ?`, [teacherId]);
@@ -62,7 +61,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
         );
         return results.affectedRows > 0;
     }
-// hadou te3 update 
     static async update_Title( quizId ,title) {
         try {
             const [result] = await pool.execute(
@@ -82,8 +80,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
                 `SELECT id FROM modules WHERE  moduleName  = ?`,
                 [moduleName]
             );
-    
-          
             if (moduleResult.length === 0) {
                 console.log("Module not found!");
                 return false;
@@ -114,6 +110,7 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             return false;
         }
     }
+    
     static async update_timedby( quizId ,etat) {
         try {
             const [result] = await pool.execute(
@@ -147,7 +144,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
 
     static async  getQuizzesByType(teacherId, timedBy) {
         try {
-        
             const [quizzes] = await pool.execute(
                 `SELECT * FROM quizzes 
                  WHERE teacher_id = ? AND timed_by = ?`,
@@ -159,7 +155,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw error; 
         }
     }
-    // all the quizzes created by a teacher on all modules 
     static async getAllQuizzesByTeacher(teacherId) {
         try {
             const [quizzes] = await pool.execute(
@@ -218,7 +213,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw error; 
         }
     }
-    // te3 submission 
     static async startQuizAttempt(studentId, quizId) {
         const [quizData] = await pool.execute(
             `SELECT created_at, duration FROM quizzes WHERE id = ?`,
@@ -264,8 +258,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             SELECT id, status FROM quiz_attempts
             WHERE student_id = ? AND quiz_id = ?
         `, [studentId, quizId]);
-
-        // Récupère les réponses de l'étudiant
         const [responses] = await pool.query(`
             SELECT is_correct
             FROM student_responses
@@ -282,15 +274,12 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             if (existingSubmission[0].status === 'submitted') {
                 return { message: 'Quiz déjà soumis.', score };
             }
-
-            // Mise à jour de la tentative existante
             await pool.query(`
                 UPDATE quiz_attempts
                 SET status = 'submitted', end_time = NOW(), score = ?
                 WHERE student_id = ? AND quiz_id = ?
             `, [score, studentId, quizId]);
         } else {
-            // Nouvelle tentative si aucune n'existait
             await pool.query(`
                 INSERT INTO quiz_attempts (student_id, quiz_id, start_time, end_time, status, score)
                 VALUES (?, ?, NOW(), NOW(), 'submitted', ?)
@@ -308,10 +297,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
         throw new Error('Erreur lors de la soumission du quiz.');
     }
 }
-
-
-
-
     static async calculateTotalDuration(quizId) {
         try {
             const [questions] = await pool.execute(
@@ -333,41 +318,7 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw error;
         }
     }
-    
-    
-    static async updateQuizDuration(quizId, totalDuration) {
-        try {
-            
-            await pool.execute(
-                `UPDATE quizzes SET duration = ? WHERE id = ?`,
-                [totalDuration, quizId]
-            );
-        } catch (error) {
-            console.error("Error updating quiz duration:", error);
-            throw error;
-        }
-    }
-    static async calculateTotalDuration(quizId) {
-        try {
-            const [questions] = await pool.execute(
-                `SELECT duration_minutes FROM questions WHERE quiz_id = ?`,
-                [quizId]
-            );
 
-            const totalSeconds = questions.reduce(
-                (total, question) => total + question.duration_minutes,
-                0
-            );
-            const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-            const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-            const seconds = String(totalSeconds % 60).padStart(2, '0');
-    
-            return `${hours}:${minutes}:${seconds}`;
-        } catch (error) {
-            console.error("Error calculating total duration:", error);
-            throw error;
-        }
-    }
     static async startQuizmob(studentId, quizId) {
         try {
             const [quizData] = await pool.execute(`
@@ -391,8 +342,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             if (now > endTime) {
                 throw new Error("Temps du quiz écoulé.");
             }
-    
-            // Vérifie et insère dans quiz_participants si nécessaire
             const [participant] = await pool.execute(`
                 SELECT id FROM quiz_participants
                 WHERE student_id = ? AND quiz_id = ?
@@ -432,24 +381,6 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             throw new Error("Erreur lors du démarrage du quiz.");
         }
     }
-    
-    
-    
-    static async updateQuizDuration(quizId, totalDuration) {
-        try {
-            
-            await pool.execute(
-                `UPDATE quizzes SET duration = ? WHERE id = ?`,
-                [totalDuration, quizId]
-            );
-        } catch (error) {
-            console.error("Error updating quiz duration:", error);
-            throw error;
-        }
-    }
-    
-    
-    
     static async finalizeQuizSubmission(studentId, quizId) {
         const [responses] = await pool.execute(
             `SELECT question_id, answer_id, is_correct
