@@ -7,7 +7,7 @@ import Quiz from '../modules/Quiz.js';
         const { quiz_id, question_text, duration_secondes, grade } = req.body;
         if (!quiz_id || !question_text) return res.status(400).json({ error: "Missing required fields" });
 
-        const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_minutes, grade });
+        const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_secondes, grade });
      
        const quiz = await Quiz.findById(quiz_id);
         if (quiz && quiz.timed_by === 'question') {
