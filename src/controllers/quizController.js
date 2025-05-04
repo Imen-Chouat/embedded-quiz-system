@@ -8,6 +8,7 @@ import multer from "multer";
 import Question from '../modules/Question.js';
 import Answer from '../modules/Answer.js';
 
+
 const createQuiz = async (req, res) => {
     try {
         const teacher_id = req.teacher.id;
@@ -54,32 +55,6 @@ const createQuiz = async (req, res) => {
         return res.status(500).json({ message: "Failed to create quiz. Please try again later." });
     }
 };
-export const startQuizmob = async (req, res) => {
-    try {
-        const { student_id, quiz_id } = req.params;
-
-        if (!student_id || !quiz_id) {
-            return res.status(400).json({ error: "student_id et quiz_id sont requis." });
-        }
-
-        const result = await Quiz.startQuizmob(Number(student_id), Number(quiz_id));
-        res.json(result);
-    } catch (error) {
-        console.error("Erreur dans startQuiz controller:", error);
-        res.status(500).json({ error: error.message });
-    }
-};
-export const submitQuiz = async (req, res) => {
-    const { studentId, quizId } = req.body;
-
-    try {
-        const result = await Quiz.submitQuiz(studentId, quizId);
-        res.status(200).json(result);
-    } catch (error) {
-        console.error('Erreur lors de la soumission du quiz :', error);
-        res.status(500).json({ message: 'Erreur serveur lors de la soumission du quiz.' });
-    }
-};
 
 
 const deleteQuiz = async (req, res) => {
@@ -123,22 +98,7 @@ const ALLQuizzes2 = async (req, res) => {
     }
 };
 
-const getModuleNameById = async (req, res) => {
-    try {
-        const { module_id } = req.body;
 
-        const [rows] = await pool.query(SELECT moduleName FROM modules WHERE id = ?, [module_id]);
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "Module not found" });
-        }
-
-        res.status(200).json({ moduleName: rows[0].moduleName });
-
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
 const Draft_Quizzes = async (req, res) => {
     try {
         const teacherId = req.teacher.id; 
@@ -166,33 +126,6 @@ const Past_Quizzes = async (req, res) => {
     } catch (error) {
         console.error("Error in getPastQuizzes:", error);
         return res.status(500).json({ message: "Failed to fetch Past quizzes ." });
-    }
-};
-const update_visibility = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { visibility } = req.body;
-        const teacherId = req.teacher.id; 
-
-        const quiz = await Quiz.findById(id);
-        if (!quiz) {
-            return res.status(404).json({ message: "Quiz not found." });
-        }
-
-        if (quiz.teacher_id !== teacherId) {
-            return res.status(403).json({ message: "Unauthorized. You can only update your own quizzes." });
-        }
-
-        const isUpdated = await Quiz.update_visibility(id, visibility);
-        if (isUpdated) {
-            const updatedQuiz = await Quiz.findById(id);
-            return res.status(200).json({ message: "Visibility updated successfully.", quiz: updatedQuiz });
-        }
-
-        return res.status(400).json({ message: "Visibility update failed." });
-    } catch (error) {
-        console.error("Error updating quiz visibility:", error);
-        return res.status(500).json({ message: "Failed to update visibility. Please try again later." });
     }
 };
 
@@ -223,28 +156,39 @@ const update_title = async (req, res) => {
         return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
     }
 };
+const getModuleNameById = async (req, res) => {
+    try {
+        const { module_id } = req.body;
 
+        const [rows] = await pool.query(`SELECT moduleName FROM modules WHERE id = ?`, [module_id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Module not found" });
+        }
+
+        res.status(200).json({ moduleName: rows[0].moduleName });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 const update_duration = async (req, res) => {
     try {
         const { id } = req.params;
         const { duration } = req.body;
         const teacherId = req.teacher.id; 
-
         const quiz = await Quiz.findById(id);
         if (!quiz) {
             return res.status(404).json({ message: "Quiz not found." });
         }
-
         if (quiz.teacher_id !== teacherId) {
             return res.status(403).json({ message: "Unauthorized. You can only update your own quizzes." });
         }
-
         const isUpdated = await Quiz.update_duration(id, duration);
         if (isUpdated) {
             const updatedQuiz = await Quiz.findById(id);
             return res.status(200).json({ message: "Quiz updated successfully.", quiz: updatedQuiz });
         }
-
         return res.status(400).json({ message: "Quiz update failed." });
     } catch (error) {
         console.error("Error updating quiz:", error);
@@ -279,6 +223,33 @@ const update_timedby = async (req, res) => {
         return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
     }
 }; 
+const update_visibility = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { visibility } = req.body;
+        const teacherId = req.teacher.id; 
+
+        const quiz = await Quiz.findById(id);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found." });
+        }
+
+        if (quiz.teacher_id !== teacherId) {
+            return res.status(403).json({ message: "Unauthorized. You can only update your own quizzes." });
+        }
+
+        const isUpdated = await Quiz.update_visibility(id, visibility);
+        if (isUpdated) {
+            const updatedQuiz = await Quiz.findById(id);
+            return res.status(200).json({ message: "Visibility updated successfully.", quiz: updatedQuiz });
+        }
+
+        return res.status(400).json({ message: "Visibility update failed." });
+    } catch (error) {
+        console.error("Error updating quiz visibility:", error);
+        return res.status(500).json({ message: "Failed to update visibility. Please try again later." });
+    }
+};
 const update_Module = async (req, res) => {
     try {
         const { id } = req.params;
@@ -299,14 +270,12 @@ const update_Module = async (req, res) => {
             const updatedQuiz = await Quiz.findById(id);
             return res.status(200).json({ message: "Quiz updated successfully.", quiz: updatedQuiz });
         }
-
         return res.status(400).json({ message: "Quiz update failed." });
     } catch (error) {
         console.error("Error updating quiz:", error);
         return res.status(500).json({ message: "Failed to update quiz. Please try again later." });
     }
 };
-
 const randomazation = async (req, res) => {
     try {
         const { quizId } = req.params;
@@ -337,9 +306,7 @@ const startQuizstudent= async (req, res) => {
         return res.status(500).json({ message: "Failed to start quiz attempt." });
     }
 }
-
 // Submit a quiz manually
-
 const submitQuizManually = async (req, res) => {
     try {
         const studentId = req.student.id; 
@@ -473,7 +440,6 @@ const importQuiz = async (req, res) => {
     const teacherId = req.teacher.id;
     const { quiz_id } = req.body;
     console.log(req.body);
-
     if (!quiz_id || isNaN(quiz_id)) {
         return res.status(400).json({ error: "Le quiz_id est requis et doit être un nombre valide." });
     }
@@ -645,7 +611,6 @@ const startQuizbyteach = async (req, res) => {
         const teacherId = req.teacher.id;
         const { quizId } = req.body;
 
-       
         const [quiz] = await pool.query(
             `SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`,
             [quizId, teacherId]
@@ -653,38 +618,11 @@ const startQuizbyteach = async (req, res) => {
         if (quiz.length === 0) {
             return res.status(404).json({ message: "Quiz not found or unauthorized." });
         }
-
-     
         if (quiz[0].status !== "Draft") {
             return res.status(400).json({ message: "Quiz is already active or ended." });
         }
-
-      
-        const [participants] = await pool.query(
-            `SELECT student_id FROM quizparticipants WHERE quiz_id = ?`,
-            [quizId]
-        );
-        if (participants.length === 0) {
-            return res.status(400).json({ message: "No students assigned to this quiz." });
-        }
-
-     
-        await pool.query(
-            `UPDATE quizzes SET status = 'Past', created_at = NOW() WHERE id = ?`,
-            [quizId]
-        );
-
-        const [assignedStudents] = await pool.query(
-            `SELECT DISTINCT s.id,s.first_name,s.last_name, s.email
-             FROM quizparticipants qp
-             JOIN students s ON qp.student_id = s.id
-             WHERE qp.quiz_id = ?`,
-            [quizId]
-        );
-
         return res.status(200).json({
             message: "Quiz started successfully.",
-            assignedStudents: assignedStudents
         });
 
     } catch (error) {
@@ -692,7 +630,6 @@ const startQuizbyteach = async (req, res) => {
         return res.status(500).json({ message: "Failed to start quiz." });
     }
 };
-
 const SeeDraftQuiz = async (req ,res )=>{
     try {
 
@@ -728,14 +665,15 @@ export default {
     update_timedby ,
     addquizparticipants,
     randomazation ,
-    submitQuiz,
-    startQuizmob , 
+    autoSubmitQuiz,
+    submitQuizManually,
+    startQuizstudent , 
     importQuiz ,
     startQuizbyteach ,
     SeeDraftQuiz ,
     update_Module ,
     getQuizDuration ,
-    Getlevel ,
+    Getlevel , 
     getModuleNameById,
     update_visibility
 } ; 
