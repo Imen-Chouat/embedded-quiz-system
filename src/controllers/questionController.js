@@ -4,13 +4,11 @@ import Quiz from '../modules/Quiz.js';
 // Ajouter une question
  const createQuestion = async (req, res) => {
     try {
-        const { quiz_id, question_text, duration_seconds, grade } = req.body;
+        const { quiz_id, question_text, duration_minutes, grade } = req.body;
         if (!quiz_id || !question_text) return res.status(400).json({ error: "Missing required fields" });
 
-        const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_seconds, grade });
-     //plz add this one in order to handle the quiz duration 
-    
-
+        const newQuestion = await Question.createQuestion({ quiz_id, question_text, duration_minutes, grade });
+     
        const quiz = await Quiz.findById(quiz_id);
         if (quiz && quiz.timed_by === 'question') {
             const totalDuration = await Quiz.calculateTotalDuration(quiz_id);
