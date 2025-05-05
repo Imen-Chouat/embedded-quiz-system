@@ -325,17 +325,7 @@ static async create(teacher_id , module_id , title , timed_by , duration ,visibi
             if (now > endTime) {
                 throw new Error("Temps du quiz écoulé.");
             }
-            const [participant] = await pool.execute(`
-                SELECT id FROM quiz_participants
-                WHERE student_id = ? AND quiz_id = ?
-            `, [studentId, quizId]);
-    
-            if (participant.length === 0) {
-                await pool.execute(`
-                    INSERT INTO quiz_participants (student_id, quiz_id)
-                    VALUES (?, ?)
-                `, [studentId, quizId]);
-            }
+           
     
             // Vérifie ou crée une tentative
             const [existing] = await pool.execute(`
