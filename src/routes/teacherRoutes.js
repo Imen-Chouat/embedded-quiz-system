@@ -27,5 +27,6 @@ router.get('/classes', authTeacherMiddleware , teacherControllers.getTeacherClas
 router.get('/getTeacherLevels', authTeacherMiddleware , teacherControllers.getTeacherLevels);
 router.get('/getTeacherSections',authTeacherMiddleware ,teacherControllers.getTeacherSections);
 router.get('/getTeacherGroups',authTeacherMiddleware ,teacherControllers.getTeacherGroups);
+
 router.post('/getLevelGroups',authTeacherMiddleware,teacherControllers.getLevelGroups);
 export default router;
