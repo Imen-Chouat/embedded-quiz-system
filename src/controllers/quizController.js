@@ -295,47 +295,32 @@ const randomazation = async (req, res) => {
 };
 // submission 
 // ki student ydir start quiz manuellement
-const startQuizstudent= async (req, res) => {
-    try {
-        const studentId = req.student.id; 
-        const { quizId } = req.body; 
-        const attemptId = await Quiz.startQuizAttempt(studentId, quizId);
-        return res.status(200).json({ message: "Quiz attempt started successfully.", attemptId });
-    } catch (error) {
-        console.error("Error in startQuizAttempt:", error);
-        return res.status(500).json({ message: "Failed to start quiz attempt." });
-    }
-}
-// Submit a quiz manually
-const submitQuizManually = async (req, res) => {
-    try {
-        const studentId = req.student.id; 
-        const { quizId, responses } = req.body; 
-        const result = await Quiz.submitQuizManually(studentId, quizId, responses);
-        return res.status(200).json(result);
-    } catch (error) {
-        console.error("Error in submitQuizManually:", error);
-        return res.status(500).json({ message: "Failed to submit quiz manually." });
-    }
-}
-const autoSubmitQuiz = async (req, res) => {
-    try {
-        const studentId = req.student.id; 
-        const { quizId } = req.body; 
-        
-        const result = await Quiz.autoSubmitQuiz(studentId, quizId);
+export const submitQuiz = async (req, res) => {
+    const { studentId, quizId } = req.body;
 
-        if (result === "already_submitted") {
-            return res.status(400).json({ message: "Quiz already submitted manually." });
-        }
-
-        return res.status(200).json({ message: "Automatic submission scheduled successfully." });
+    try {
+        const result = await Quiz.submitQuiz(studentId, quizId);
+        res.status(200).json(result);
     } catch (error) {
-        console.error("Error in autoSubmitQuiz:", error);
-        return res.status(500).json({ message: "Failed to schedule automatic submission." });
+        console.error('Erreur lors de la soumission du quiz :', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la soumission du quiz.' });
     }
 };
+export const startQuizmob = async (req, res) => {
+    try {
+        const { student_id, quiz_id } = req.params;
 
+        if (!student_id || !quiz_id) {
+            return res.status(400).json({ error: "student_id et quiz_id sont requis." });
+        }
+
+        const result = await Quiz.startQuizmob(Number(student_id), Number(quiz_id));
+        res.json(result);
+    } catch (error) {
+        console.error("Erreur dans startQuiz controller:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 const addquizparticipants = async (req, res) => {
     try {
         const teacherId = req.teacher.id;
@@ -606,30 +591,43 @@ const Past_Quizzesbymodule = async (req, res) => {
     }
 };
 
+
 const startQuizbyteach = async (req, res) => {
     try {
-        const teacherId = req.teacher.id;
-        const { quizId } = req.body;
+        const teacherId = 1;
+        const { quizId,message } = req.body;
 
         const [quiz] = await pool.query(
             `SELECT id, status FROM quizzes WHERE id = ? AND teacher_id = ?`,
             [quizId, teacherId]
         );
+
         if (quiz.length === 0) {
-            return res.status(404).json({ message: "Quiz not found or unauthorized." });
+            return res.status(404).json({ message: "Quiz not found or you don't have permission." });
         }
-        if (quiz[0].status !== "Draft") {
-            return res.status(400).json({ message: "Quiz is already active or ended." });
+
+        if (quiz[0].status === "Past") {
+            return res.status(400).json({ message: "Quiz has already been started." });
         }
-        return res.status(200).json({
-            message: "Quiz started successfully.",
-        });
+
+        await pool.query(
+            `UPDATE quizzes SET status = 'Past', created_at = NOW() WHERE id = ?`,
+            [quizId]
+        );
+         
+        
+        // 🔥 EMIT SOCKET.IO NOTIFICATION ICI
+        const io = req.app.get('io'); // récupère l’instance socket.io
+        io.emit('new-notification', { message: 'New quiz available!', quizId });
+
+        return res.status(200).json({ message: "Quiz started successfully." });
 
     } catch (error) {
         console.error("Error starting quiz:", error);
         return res.status(500).json({ message: "Failed to start quiz." });
     }
 };
+
 const SeeDraftQuiz = async (req ,res )=>{
     try {
 
@@ -665,9 +663,8 @@ export default {
     update_timedby ,
     addquizparticipants,
     randomazation ,
-    autoSubmitQuiz,
-    submitQuizManually,
-    startQuizstudent , 
+    startQuizmob,
+    submitQuiz,
     importQuiz ,
     startQuizbyteach ,
     SeeDraftQuiz ,
