@@ -6,9 +6,10 @@ import fs from "fs";
 import csv from "csv-parser";
 import multer from "multer";
 import Question from '../modules/Question.js';
-import Answer from '../modules/Answer.js';
-
-
+import Answer from '../modules/answer.js';
+import { Parser } from 'json2csv';
+import path from 'path';
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const createQuiz = async (req, res) => {
     try {
         const teacher_id = req.teacher.id;
@@ -509,7 +510,90 @@ const importQuiz = async (req, res) => {
             res.status(500).json({ error: "Une erreur s'est produite lors de la lecture du fichier CSV." });
         });
 };
+const exportQuizToCSV = async (req, res) => {
+    try {
+        const { quiz_id } = req.body;
+        const teacherId = req.teacher.id;
+        const query = `
+            SELECT 
+                q.id AS question_id,
+                q.question_text,
+                a.answer_text,
+                a.is_correct
+            FROM 
+                questions q
+            JOIN answers a ON q.id = a.question_id
+            WHERE q.quiz_id = ?
+            ORDER BY q.id, a.id
+        `;
 
+        const [rows] = await pool.query(query, [quiz_id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Quiz not found or has no questions" });
+        }
+        const grouped = {};
+
+        rows.forEach(row => {
+            if (!grouped[row.question_id]) {
+                grouped[row.question_id] = {
+                    question: row.question_text,
+                    options: [],
+                    correct: 0
+                };
+            }
+            const optionIndex = grouped[row.question_id].options.length;
+            grouped[row.question_id].options.push(row.answer_text);
+
+            if (row.is_correct === 1) {
+                grouped[row.question_id].correct = optionIndex + 1; // 1-based index
+            }
+        });
+        const questionsData = Object.values(grouped).map(q => {
+
+            while (q.options.length < 6) {
+                q.options.push('');
+            }
+
+            return {
+                question: q.question,
+                option1: q.options[0],
+                option2: q.options[1],
+                option3: q.options[2],
+                option4: q.options[3],
+                option5: q.options[4],
+                option6: q.options[5],
+                correct: q.correct
+            };
+        });
+
+       
+        const fields = ['question', 'option1', 'option2', 'option3', 'option4', 'option5', 'option6', 'correct'];
+        const parser = new Parser({ fields });
+        const csvData = parser.parse(questionsData);
+
+        const filePath = path.resolve('exports', `quiz_${quiz_id}_export.csv`);
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, csvData, 'utf8');
+        res.download(filePath, (err) => {
+            if (err) {
+                console.error("Download error:", err);
+                return res.status(500).json({ error: "Error during file download." });
+            }
+
+            // if (fs.existsSync(filePath)) {
+            //     fs.unlinkSync(filePath);
+            // }
+        });
+
+    } catch (error) {
+        console.error("CSV export error:", error);
+        res.status(500).json({ error: "Erreur lors de l'export CSV." });
+    }
+};
 const getQuizDuration = async (req , res) => {
     try {
         const {quizId }= req.params ;
@@ -591,10 +675,28 @@ const Past_Quizzesbymodule = async (req, res) => {
     }
 };
 
+const getLastQuiz = async (req, res) => {
+    try {
+      const [rows] = await db.query(`
+        SELECT id FROM quizzes ORDER BY created_at DESC LIMIT 1
+      `);
+  
+      if (rows.length === 0) {
+        return res.status(404).json({ message: 'Aucun quiz trouvé' });
+      }
+  
+      res.json({ quizId: rows[0].id });
+    } catch (err) {
+      console.error('Erreur getLastQuiz:', err);
+      res.status(500).json({ message: 'Erreur serveur' });
+    }
+  };
+
+
 
 const startQuizbyteach = async (req, res) => {
     try {
-        const teacherId = 1;
+        const teacherId = 
         const { quizId,message } = req.body;
 
         const [quiz] = await pool.query(
@@ -606,15 +708,14 @@ const startQuizbyteach = async (req, res) => {
             return res.status(404).json({ message: "Quiz not found or you don't have permission." });
         }
 
-        if (quiz[0].status === "Past") {
-            return res.status(400).json({ message: "Quiz has already been started." });
+        if (quiz[0].status !== "Draft") {
+            return res.status(400).json({ message: "Quiz is already active or ended." });
         }
 
         await pool.query(
-            `UPDATE quizzes SET status = 'Past', created_at = NOW() WHERE id = ?`,
-            [quizId]
+            `UPDATE quizzes SET status = 'Ongoing',  created_at = NOW() WHERE id = ? AND teacher_id = ?`,
+            [startTime, quizId, teacherId]
         );
-         
         
         // 🔥 EMIT SOCKET.IO NOTIFICATION ICI
         const io = req.app.get('io'); // récupère l’instance socket.io
@@ -627,7 +728,33 @@ const startQuizbyteach = async (req, res) => {
         return res.status(500).json({ message: "Failed to start quiz." });
     }
 };
+const checkQuizStatus = async () => {
+    try {
+        const currentTime = new Date();
+        const [quizzes] = await pool.query(
+            `SELECT id, status, created_at, duration FROM quizzes WHERE status = 'Ongoing'`
+        );
 
+        quizzes.forEach(async (quiz) => {
+            const [hours, minutes] = quiz.duration.split(":").map(Number);
+            const durationInMinutes = hours * 60 + minutes;
+
+            const quizStartTime = new Date(quiz.created_at);
+            const quizEndTime = new Date(quizStartTime.getTime() + durationInMinutes * 60000);
+
+            if (currentTime >= quizEndTime) {
+                
+                await pool.query(
+                    `UPDATE quizzes SET status = 'Past' WHERE id = ?`,
+                    [quiz.id]
+                );
+                console.log(`Quiz ${quiz.id} status updated to Past.`);
+            }
+        });
+    } catch (error) {
+        console.error("Error checking quiz statuses:", error);
+    }
+};
 const SeeDraftQuiz = async (req ,res )=>{
     try {
 
@@ -666,11 +793,13 @@ export default {
     startQuizmob,
     submitQuiz,
     importQuiz ,
+    exportQuizToCSV ,
     startQuizbyteach ,
     SeeDraftQuiz ,
     update_Module ,
     getQuizDuration ,
     Getlevel , 
     getModuleNameById,
-    update_visibility
+    update_visibility,
+    checkQuizStatus
 } ; 
