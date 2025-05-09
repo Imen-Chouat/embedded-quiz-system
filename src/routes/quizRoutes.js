@@ -31,9 +31,8 @@ router.post('/Past_Quizzesbymodule', authTeacherMiddleware, quizController.Past_
 router.get('/AllQuizzes2', authTeacherMiddleware, quizController.ALLQuizzes2);
 router.get('/draftQuizzes', authTeacherMiddleware, quizController.Draft_Quizzes);
 router.get('/PastQuizzes', authTeacherMiddleware, quizController.Past_Quizzes);
-router.post("/start_student",authenticateStudent , quizController.startQuizstudent);
-router.post("/submit", authenticateStudent, quizController.submitQuizManually);
-router.post("/auto-submit", authenticateStudent, quizController.autoSubmitQuiz);
+router.post("/start_student",authenticateStudent , quizController.startQuizmob);
+router.post("/submitQuiz", authenticateStudent, quizController.submitQuiz);
 router.post("/addquizparticipants", authTeacherMiddleware, quizController.addquizparticipants);
 router.post("/importQuiz", authTeacherMiddleware, upload.single('file'), quizController.importQuiz);
 router.post("/ExportQuiz", authTeacherMiddleware, quizController.exportQuizToCSV);
@@ -45,8 +44,6 @@ router.get("/getQuizDuration/:quizId", quizController.getQuizDuration);
 router.get("/getlevel",authTeacherMiddleware, quizController.Getlevel);
 router.get("/getModuleNameById",quizController.getModuleNameById);
 router.patch('/:id/visibility', authTeacherMiddleware, quizController.update_visibility);
-
 export default router;
-
 
 
