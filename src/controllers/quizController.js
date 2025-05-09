@@ -9,7 +9,7 @@ import Question from '../modules/Question.js';
 import Answer from '../modules/answer.js';
 import { Parser } from 'json2csv';
 import path from 'path';
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const dirname = path.dirname(new URL(import.meta.url).pathname);
 const createQuiz = async (req, res) => {
     try {
         const teacher_id = req.teacher.id;
