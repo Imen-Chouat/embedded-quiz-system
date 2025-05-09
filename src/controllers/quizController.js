@@ -696,7 +696,7 @@ const getLastQuiz = async (req, res) => {
 
 const startQuizbyteach = async (req, res) => {
     try {
-        const teacherId = 
+        const teacher_id = req.teacher.id ;
         const { quizId,message } = req.body;
 
         const [quiz] = await pool.query(
