@@ -44,6 +44,8 @@ router.get("/getQuizDuration/:quizId", quizController.getQuizDuration);
 router.get("/getlevel",authTeacherMiddleware, quizController.Getlevel);
 router.get("/getModuleNameById",quizController.getModuleNameById);
 router.patch('/:id/visibility', authTeacherMiddleware, quizController.update_visibility);
+router.post("/getQuizById", authTeacherMiddleware ,quizController.getQuizById);
+router.get("/getLastQuiz",authTeacherMiddleware  ,quizController.getLastQuiz);
 export default router;
 
 
