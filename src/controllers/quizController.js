@@ -774,6 +774,22 @@ const SeeDraftQuiz = async (req ,res )=>{
         return res.status(500).json({ message: "Failed to fetch the darfted quiz."});
     }
 }; 
+const getQuizById = async (req, res) => {
+    const  {quizId}= req.body;
+
+    try {
+        const quiz = await Quiz.findById(quizId);
+
+        if (!quiz) {
+            return res.status(404).json({ message: `Quiz with ID ${quizId} not found` });
+        }
+
+        res.status(200).json(quiz);
+    } catch (error) {
+        console.error("Controller error:", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
 
 export default {
     createQuiz,
@@ -801,5 +817,7 @@ export default {
     Getlevel , 
     getModuleNameById,
     update_visibility,
-    checkQuizStatus
+    checkQuizStatus ,
+    getQuizById ,
+    getLastQuiz
 } ; 
