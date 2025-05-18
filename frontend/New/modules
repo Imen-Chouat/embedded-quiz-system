@@ -65,7 +65,7 @@ const Modules = ({ navigation }) => {
     navigation.navigate('ModuleDetails', { moduleId });
   }, [navigation]);
 
-  // Function to get different module icons
+  // Function to get different module icons based on index
   const getModuleIcon = (index) => {
     const icons = [
       require('../assets/s1.png'),
@@ -76,16 +76,20 @@ const Modules = ({ navigation }) => {
     return icons[index % icons.length];
   };
 
-  // Function to get different module colors
+  // Function to get different module button styles based on index
   const getModuleStyle = (index) => {
-    const styles = ['button1', 'button2', 'button3', 'button4'];
-    return styles[index % styles.length];
+    const buttonStyles = ['button1', 'button2', 'button3', 'button4'];
+    return buttonStyles[index % buttonStyles.length];
   };
 
   return (
     <View style={styles.mainContainer}>
       {/* Back arrow */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.7}
+      >
         <Image source={require('../assets/list.png')} style={styles.backIcon} />
       </TouchableOpacity>
       
